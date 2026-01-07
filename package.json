@@ -1,0 +1,63 @@
+{
+  "name": "zustic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --external react",
+    "start:cjs": "node dist/cjs/index.js",
+    "start:esm": "node dist/esm/index.js",
+    "start": "ts-node src/index.ts",
+    "test": "npm run build && npm link"
+  },
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "directories": {
+    "dist": "dist`"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DeveloperRejaul/zustic.git"
+  },
+  "author": "Rejaul Karim",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DeveloperRejaul/zustic/issues"
+  },
+  "keywords": [
+    "javascript",
+    "zustic",
+    "react",
+    "react-native",
+    "nextjs",
+    "state"
+  ],
+  "homepage": "https://github.com/DeveloperRejaul/zustic#readme",
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.16",
+    "react": "^19.1.1",
+    "@types/node": "^22.7.4",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.7.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.2"
+  },
+  "peerDependencies": {
+    "react": "*"
+  },
+  "sideEffects": false
+}
