@@ -432,7 +432,7 @@ ISC © 2024 [Rejaul Karim](https://github.com/DeveloperRejaul)
 
 ## Changelog
 
-### v1.0.0 (2024)
+### v1.0.0 (2026)
 - Initial release
 - Basic state management with `create` function
 - TypeScript support
