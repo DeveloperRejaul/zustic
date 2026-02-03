@@ -45,7 +45,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -f $VERSION
-          git push origin $VERSION
+          git push origin $VERSION --force
 
       - name: 📝 Get full last commit message (with markdown)
         id: release_notes
