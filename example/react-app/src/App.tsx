@@ -1,19 +1,27 @@
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import {create} from 'zustic'
+import {create, type Middleware} from 'zustic'
 
 type CreateType = {
   count: number;
   inc: () => void;
   dec: () => void;
+  getTotal: () => number;
 }
 
-const useCounter = create<CreateType>((set) => ({
+const logger = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
+    console.log('prev:', get());
+    await next(partial);
+    console.log('next:', get());
+};
+
+const useCounter = create<CreateType>((set, get) => ({
   count: 0,
-  inc: () => set((state) => ({ count: state.count + 1 })),
-  dec: () => set((state) => ({ count: state.count - 1 })),
-}))
+  inc: () => set(() => ({ count: get().count + 1 })),
+  dec: () => set(() => ({ count: get().count - 1 })),
+  getTotal: () => get().count
+}),[logger<CreateType>()])
 
 function App() {
   const {count, inc} = useCounter()
@@ -30,7 +38,9 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => inc()}>
+        <button onClick={() => {
+          inc()
+        }}>
           count is {count}
         </button>
         <p>

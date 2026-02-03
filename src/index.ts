@@ -1,8 +1,6 @@
 'use client';
 import { useSyncExternalStore } from 'react';
-
-type Listener = () => void;
-
+import type { CreateParamsType, Listener, Middleware, SetSateParams } from 'types';
 
 /**
  * Create a store with state and actions.
@@ -19,7 +17,7 @@ type Listener = () => void;
  *   count: 1,
  *   inc: () => set((state) => ({ count: state.count + 1 })),
  *   dec: () => set((state) => ({ count: state.count - 1 })),
- * })));
+ * }));
  * 
  * // In a React component:
  * const Counter = () => {
@@ -33,24 +31,44 @@ type Listener = () => void;
  *   );
  * }
  * ```
+ * 
+ * Example of Middleware
+ * ```
+ * const logger = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
+ *     console.log('prev:', get());
+ *     await next(partial);
+ *     console.log('next:', get());
+ * };
+ * 
+ * ```
  *
  * @param initializer Function that receives `set` and returns the initial state object.
  * @returns A hook that provides access to the store state and actions.
  */
-export function create<T extends object>(initializer: (set: (partial: Partial<T> | ((state: T) => Partial<T>)) => void) => T) {
+function create<T extends object>(
+  initializer: CreateParamsType<T>,
+  middlewares: Middleware<T>[] = []
+) {
   // Internal store state
   let state: T;
   let listeners: Listener[] = [];
 
   // Update function
-  const setState = (partial: Partial<T> | ((state: T) => Partial<T>)) => {
+  const setState = (partial: SetSateParams<T>) => {
     const partialState = typeof partial === 'function' ? partial(state) : partial;
     state = { ...state, ...partialState };
     listeners.forEach(l => l());
   };
 
+  const getState = () => state;
+
+  // setState with Middleware
+  const setStateWithMiddleware = applyMiddleware<T>(setState,getState,middlewares);
+
+
   // Create store
-  state = initializer(setState);
+  state = initializer(setStateWithMiddleware, getState);
+
 
   // Subscribe function
   const subscribe = (listener: Listener) => {
@@ -60,14 +78,29 @@ export function create<T extends object>(initializer: (set: (partial: Partial<T>
     };
   };
 
-  const getSnapshot = () => state;
 
   // React hook
-  return function useStore() {
-    const snapshot = useSyncExternalStore(subscribe, getSnapshot);
-    return snapshot;
-  };
+  return () => useSyncExternalStore(subscribe, getState)
 }
 
 
+const applyMiddleware = <T>(
+  set: (partial: SetSateParams<T>) => void,
+  get: () => T,
+  middlewares?: Middleware<T>[]
+):((partial: SetSateParams<T>) => void) => {
+  if (!middlewares || middlewares.length === 0) {
+    return set;
+  }
 
+  return middlewares.reduceRight(
+    (next, mw) => mw(set, get)(next),
+    set
+  );
+};
+
+
+export {
+  create,
+  type Middleware
+}
