@@ -38,7 +38,7 @@
     "nextjs",
     "state"
   ],
-  "homepage": "https://zustic.github.io/",
+  "homepage": "https://zustic.github.io",
   "files": [
     "dist/**/*",
     "README.md"
