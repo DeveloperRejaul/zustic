@@ -1,6 +1,6 @@
 {
   "name": "zustic",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A fast, minimal state management solution for React ecosystems. Works seamlessly with React, Next.js, and React Native, offering predictable state updates with a tiny footprint.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -38,7 +38,7 @@
     "nextjs",
     "state"
   ],
-  "homepage": "https://github.com/DeveloperRejaul/zustic#readme",
+  "homepage": "https://zustic.github.io/",
   "files": [
     "dist/**/*",
     "README.md"

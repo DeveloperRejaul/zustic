@@ -1,42 +1,91 @@
-# Zustic
+<div align="center">
 
-A lightweight, minimal state management library for React using `useSyncExternalStore`. Perfect for managing global state in React, React Native, and Next.js applications.
+# 🎯 Zustic
 
-[![npm](https://img.shields.io/npm/v/zustic)](https://www.npmjs.com/package/zustic)
-[![license](https://img.shields.io/npm/l/zustic)](LICENSE)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/zustic)](https://bundlephobia.com/package/zustic)
+### Lightweight State Management for Modern React Applications
 
-## Features
+[![npm version](https://img.shields.io/npm/v/zustic.svg)](https://npm.im/zustic)
+[![npm downloads](https://img.shields.io/npm/dm/zustic.svg)](https://npm.im/zustic)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/zustic)](https://bundlephobia.com/result?p=zustic)
+[![License](https://img.shields.io/npm/l/zustic.svg)](LICENSE)
 
-✨ **Lightweight** - Minimal footprint with zero dependencies (except React)  
-⚡ **Simple API** - Intuitive and easy to learn state management  
-🎣 **React Hooks** - Use hooks to access state in your components  
-📱 **Multi-Platform** - Works with React, React Native, and Next.js  
-🔄 **Reactive Updates** - Automatic re-renders on state changes  
-💾 **TypeScript Support** - Full TypeScript support with type safety  
-🚀 **Production Ready** - Optimized for performance and reliability  
+A **fast, minimal state management solution** for React ecosystems. Works seamlessly with React, Next.js, and React Native with predictable state updates and a tiny footprint.
 
-## Installation
+[📖 Documentation](https://zustic.github.io/) · [🐛 Report Bug](https://github.com/DeveloperRejaul/zustic/issues) · [💡 Request Feature](https://github.com/DeveloperRejaul/zustic/issues)
+
+</div>
+
+---
+
+## ✨ Key Features
+
+### Core Features
+- **🪶 Ultra-Lightweight** — Only ~500B (gzipped) with zero dependencies
+- **⚡ Simple API** — One function (`create`) to manage all your state
+- **🎣 React Hooks** — Native React hooks integration with automatic subscriptions
+- **📱 Multi-Platform** — React, React Native, Next.js, and modern frameworks
+- **🔄 Reactive Updates** — Automatic re-renders with optimized batching
+- **💾 TypeScript First** — Full type safety with perfect type inference
+- **🚀 Production Ready** — Battle-tested in real applications
+
+### Advanced Capabilities
+- **🧩 Middleware System** — Extend functionality with logging, persistence, validation, and more
+- **📡 Direct State Access** — `get()` function for reading state outside components
+- **🎯 Selective Subscriptions** — Components only re-render when their data changes
+- **⚙️ Fully Extensible** — Build custom middleware for any use case
+- **🧪 Easy Testing** — Simple to test stores with middleware and async operations
+- **🔗 Framework Agnostic** — Create middleware once, use everywhere
+
+---
+
+## 📦 Installation
+
+Choose your favorite package manager:
 
 ```bash
+# npm
 npm install zustic
-```
 
-or with yarn:
-
-```bash
+# yarn
 yarn add zustic
-```
 
-or with pnpm:
-
-```bash
+# pnpm
 pnpm add zustic
 ```
 
-## Quick Start
+---
 
-### Basic Usage
+## 🤔 Why Zustic?
+
+### Size & Performance
+| Metric | Zustic | Redux | Zustand | Context API |
+|--------|--------|-------|---------|-------------|
+| **Bundle Size** | ~500B | ~6KB | ~2KB | Built-in |
+| **Performance** | ⚡ Optimized | Good | ⚡ Optimized | ⚠️ Re-renders |
+| **Dependencies** | 0 | 0 | 0 | 0 |
+
+### Developer Experience
+- **Ultra-Simple API**: Master everything in 5 minutes
+- **Zero Boilerplate**: No actions, reducers, or providers
+- **TypeScript Native**: Perfect type inference out of the box
+- **Great DX**: Intuitive `create()`, `set()`, `get()` functions
+
+### Comparison with Other Libraries
+
+| Feature | Zustic | Redux | Zustand | Context API |
+|---------|--------|-------|---------|-------------|
+| Bundle Size | ~500B ✅ | ~6KB | ~2KB | 0B |
+| Learning Curve | ⭐ Easy | ⭐⭐⭐⭐⭐ Hard | ⭐⭐ Easy | ⭐⭐⭐ Medium |
+| Boilerplate | Minimal ✅ | Massive | Minimal | Some |
+| TypeScript | Excellent ✅ | Good | Good | Good |
+| Middleware | Built-in ✅ | Required | Optional | ❌ No |
+| API Simplicity | Very Simple ✅ | Complex | Simple | Medium |
+
+---
+
+## 🚀 Quick Start
+
+### 1. Create Your Store
 
 ```typescript
 import { create } from 'zustic';
@@ -56,7 +105,7 @@ export const useCounter = create<CounterStore>((set) => ({
 }));
 ```
 
-### Using in React Components
+### 2. Use in Your Component
 
 ```typescript
 import { useCounter } from './store';
@@ -67,9 +116,9 @@ function Counter() {
   return (
     <div>
       <p>Count: {count}</p>
-      <button onClick={inc}>Increment</button>
-      <button onClick={dec}>Decrement</button>
-      <button onClick={reset}>Reset</button>
+      <button onClick={inc}>➕ Increment</button>
+      <button onClick={dec}>➖ Decrement</button>
+      <button onClick={reset}>🔄 Reset</button>
     </div>
   );
 }
@@ -77,363 +126,354 @@ function Counter() {
 export default Counter;
 ```
 
-## API Reference
+That's it! No providers, no boilerplate, just pure state management.
 
-### `create<T>(initializer)`
+---
 
-Creates a new store with the given state and actions.
+## 📚 Core Concepts
 
-#### Parameters
+### Create a Store
 
-- **initializer** `(set: (partial: Partial<T> | ((state: T) => Partial<T>)) => void) => T`
-  - A function that receives the `set` function and returns the initial state object
-  - The `set` function accepts either a partial state object or a function that takes the current state and returns a partial state object
-
-#### Returns
-
-A React hook function that provides access to the store state.
-
-#### Type Parameters
-
-- **T** `extends object` - The shape of your store state
-
-## Advanced Examples
-
-### 1. Combining Multiple Stores
+The `create` function is the heart of Zustic:
 
 ```typescript
-import { create } from 'zustic';
-
-// User store
-export const useUserStore = create<UserStore>((set) => ({
-  user: null,
-  setUser: (user) => set({ user }),
-  clearUser: () => set({ user: null }),
+const useStore = create<StoreType>((set, get) => ({
+  // Your state and actions
 }));
-
-// Todos store
-export const useTodosStore = create<TodosStore>((set) => ({
-  todos: [],
-  addTodo: (todo) => set((state) => ({ 
-    todos: [...state.todos, todo] 
-  })),
-  removeTodo: (id) => set((state) => ({
-    todos: state.todos.filter(t => t.id !== id)
-  })),
-}));
-
-// Use both in a component
-function App() {
-  const user = useUserStore();
-  const todos = useTodosStore();
-  
-  return (
-    <>
-      <User />
-      <TodoList />
-    </>
-  );
-}
 ```
 
-### 2. Complex State Updates
+- **`set`**: Update state (supports partial updates and functions)
+- **`get`**: Read current state (works outside components)
+
+### Reading State in Components
 
 ```typescript
-const useShopStore = create<ShopStore>((set) => ({
-  items: [],
-  cart: [],
-  total: 0,
+function Component() {
+  // Subscribe to entire store
+  const state = useStore();
   
-  addToCart: (item) => set((state) => ({
-    cart: [...state.cart, item],
-    total: state.total + item.price,
-  })),
+  // Or subscribe to specific properties (optimized)
+  const count = useStore((state) => state.count);
   
-  removeFromCart: (itemId) => set((state) => ({
-    cart: state.cart.filter(item => item.id !== itemId),
-    total: state.total - state.cart.find(item => item.id === itemId)?.price || 0,
-  })),
-  
-  clearCart: () => set({
-    cart: [],
-    total: 0,
+  return <div>{count}</div>;
+}
+```
+<!-- 
+### Reading State Outside Components
+
+```typescript
+// In event handlers, callbacks, or services
+const currentState = useStore.get();
+console.log(currentState.count);
+```
+
+### Updating State
+
+```typescript
+// Partial update
+useStore.set({ count: 5 });
+
+// Functional update with access to current state
+useStore.set((state) => ({ 
+  count: state.count + 1 
+}));
+
+// Async updates
+useStore.set(async (state) => ({
+  data: await fetchData(),
+  loading: false
+}));
+``` -->
+
+---
+
+## 🧩 Middleware System
+
+Extend Zustic with powerful middleware for logging, persistence, validation, and more.
+
+### Logger Middleware
+
+```typescript
+const logger = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
+  console.log('🔵 Previous State:', get());
+  await next(partial);
+  console.log('🟢 New State:', get());
+};
+
+export const useStore = create<StoreType>(
+  (set) => ({
+    count: 0,
+    inc: () => set((state) => ({ count: state.count + 1 })),
   }),
-}));
+  [logger()]
+);
 ```
 
-### 3. Computed Values
+### Persistence Middleware
 
 ```typescript
-const useStatsStore = create<StatsStore>((set) => ({
-  scores: [],
-  
-  addScore: (score) => set((state) => ({
-    scores: [...state.scores, score],
-  })),
-  
-  // You can compute values directly in the component
-  // or create selector functions
-  getAverage: (state) => {
-    if (state.scores.length === 0) return 0;
-    return state.scores.reduce((a, b) => a + b, 0) / state.scores.length;
-  },
-}));
+const persist = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
+  await next(partial);
+  localStorage.setItem('store', JSON.stringify(get()));
+};
 
-function Stats() {
-  const { scores, addScore, getAverage } = useStatsStore();
-  const average = getAverage(useStatsStore());
-  
-  return <div>Average: {average}</div>;
-}
+export const useStore = create<StoreType>(
+  (set) => ({
+    count: 0,
+    inc: () => set((state) => ({ count: state.count + 1 })),
+  }),
+  [persist()]
+);
 ```
 
-### 4. Next.js Usage
+### Validation Middleware
 
 ```typescript
-// store/counterStore.ts
+const validate = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
+  // Validate before updating
+  if (typeof partial === 'object' && partial.count < 0) {
+    console.warn('Invalid state update');
+    return;
+  }
+  await next(partial);
+};
+
+export const useStore = create<StoreType>(
+  (set) => ({
+    count: 0,
+    inc: () => set((state) => ({ count: state.count + 1 })),
+  }),
+  [validate()]
+);
+```
+
+### Multiple Middleware
+
+```typescript
+export const useStore = create<StoreType>(
+  (set) => ({
+    count: 0,
+    inc: () => set((state) => ({ count: state.count + 1 })),
+  }),
+  [logger(), persist(), validate()]
+);
+```
+
+---
+
+## 📱 Multi-Platform Examples
+
+### React Web
+
+```typescript
 import { create } from 'zustic';
 
-export const useCounterStore = create<CounterStore>((set) => ({
+const useStore = create((set) => ({
   count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-  decrement: () => set((state) => ({ count: state.count - 1 })),
+  inc: () => set((state) => ({ count: state.count + 1 })),
 }));
-```
 
-```typescript
-// app/page.tsx
-'use client';
-
-import { useCounterStore } from '@/store/counterStore';
-
-export default function Home() {
-  const { count, increment, decrement } = useCounterStore();
-
+export default function App() {
+  const { count, inc } = useStore();
   return (
-    <main>
-      <h1>Count: {count}</h1>
-      <button onClick={increment}>+</button>
-      <button onClick={decrement}>-</button>
-    </main>
+    <div>
+      <p>{count}</p>
+      <button onClick={inc}>Increment</button>
+    </div>
   );
 }
 ```
 
-### 5. React Native Usage
+### React Native
 
 ```typescript
 import { create } from 'zustic';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Button } from 'react-native';
 
-const useThemeStore = create<ThemeStore>((set) => ({
-  isDark: false,
-  toggleTheme: () => set((state) => ({ isDark: !state.isDark })),
+const useStore = create((set) => ({
+  count: 0,
+  inc: () => set((state) => ({ count: state.count + 1 })),
 }));
 
-function App() {
-  const { isDark, toggleTheme } = useThemeStore();
-
+export default function App() {
+  const { count, inc } = useStore();
   return (
-    <View style={{ backgroundColor: isDark ? '#000' : '#fff' }}>
-      <Text>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
-      <TouchableOpacity onPress={toggleTheme}>
-        <Text>Toggle Theme</Text>
-      </TouchableOpacity>
+    <View>
+      <Text>{count}</Text>
+      <Button title="Increment" onPress={inc} />
     </View>
   );
 }
 ```
 
-## Best Practices
-
-### 1. **Organize Stores**
-Keep your stores organized in a dedicated directory:
-
-```
-src/
-├── stores/
-│   ├── counterStore.ts
-│   ├── userStore.ts
-│   └── index.ts
-└── components/
-```
-
-### 2. **Type Your Store**
-Always define proper TypeScript types for better type safety:
+### Next.js
 
 ```typescript
-interface CounterState {
-  count: number;
-  inc: () => void;
-  dec: () => void;
-}
+'use client';
 
-export const useCounter = create<CounterState>((set) => ({
+import { create } from 'zustic';
+
+const useStore = create((set) => ({
   count: 0,
   inc: () => set((state) => ({ count: state.count + 1 })),
-  dec: () => set((state) => ({ count: state.count - 1 })),
 }));
-```
 
-### 3. **Keep State Flat**
-Try to keep your state structure as flat as possible for better performance:
-
-```typescript
-// ❌ Avoid deeply nested structures
-const state = { user: { profile: { settings: { theme: 'dark' } } } };
-
-// ✅ Prefer flat structures
-const state = { userTheme: 'dark' };
-```
-
-### 4. **Use Immutable Updates**
-Always return new objects instead of mutating state:
-
-```typescript
-// ❌ Bad - mutating state
-set((state) => {
-  state.items.push(newItem);
-  return state;
-});
-
-// ✅ Good - immutable updates
-set((state) => ({
-  items: [...state.items, newItem],
-}));
-```
-
-## Performance Tips
-
-1. **Minimize Subscriptions** - Only subscribe to the parts of the state you need
-2. **Use Memoization** - Memoize components that depend on store state
-3. **Avoid Large Objects** - Split large stores into multiple smaller ones
-4. **Batch Updates** - Group related state updates together
-
-## Browser Support
-
-Zustic works in all modern browsers that support ES6 and React 16.8+.
-
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers supporting React Native
-
-## Comparison
-
-| Feature | Zustic | Zustand | Redux | Context API |
-|---------|--------|---------|-------|-------------|
-| Bundle Size | ~500B | ~2KB | ~7KB | - |
-| Learning Curve | Very Easy | Easy | Hard | Medium |
-| Boilerplate | Minimal | Minimal | Lots | Medium |
-| DevTools | No | Yes | Yes | No |
-| Middleware | No | Yes | Yes | No |
-| TypeScript | ✅ | ✅ | ✅ | ✅ |
-
-## Troubleshooting
-
-### State not updating?
-Make sure you're using the `set` function correctly. Always return a new object:
-
-```typescript
-// ❌ Wrong
-set({ count: state.count + 1 }); // state is undefined here
-
-// ✅ Correct
-set((state) => ({ count: state.count + 1 }));
-```
-
-### Component not re-rendering?
-Ensure you're using the hook at the top level of your component:
-
-```typescript
-// ❌ Bad
-if (condition) {
-  const state = useStore();
-}
-
-// ✅ Good
-const state = useStore();
-```
-
-## Migration Guide
-
-### From Context API
-
-Before:
-```typescript
-const CounterContext = createContext();
-
-export function CounterProvider({ children }) {
-  const [count, setCount] = useState(0);
-  
+export default function Page() {
+  const { count, inc } = useStore();
   return (
-    <CounterContext.Provider value={{ count, setCount }}>
-      {children}
-    </CounterContext.Provider>
+    <div>
+      <p>{count}</p>
+      <button onClick={inc}>Increment</button>
+    </div>
   );
 }
-
-function useCounter() {
-  return useContext(CounterContext);
-}
 ```
 
-After:
+---
+
+## 🧪 Testing
+
+Zustic stores are easy to test:
+
 ```typescript
-export const useCounter = create((set) => ({
+import { create } from 'zustic';
+
+// Your store
+const useStore = create((set) => ({
   count: 0,
-  setCount: (count) => set({ count }),
+  inc: () => set((state) => ({ count: state.count + 1 })),
+  reset: () => set({ count: 0 }),
 }));
-```
 
-### From Redux
+// Test it
+describe('Counter Store', () => {
+  it('should increment count', () => {
+    useStore.set({ count: 0 });
+    useStore.get().inc();
+    expect(useStore.get().count).toBe(1);
+  });
 
-Before:
-```typescript
-const counterSlice = createSlice({
-  name: 'counter',
-  initialState: { count: 0 },
-  reducers: {
-    increment: (state) => { state.count += 1; },
-  },
+  it('should reset count', () => {
+    useStore.set({ count: 5 });
+    useStore.get().reset();
+    expect(useStore.get().count).toBe(0);
+  });
 });
-
-export const { increment } = counterSlice.actions;
-export default useSelector((state) => state.counter);
 ```
 
-After:
+---
+
+## 💡 Advanced Examples
+
+### Async State
+
 ```typescript
-export const useCounter = create((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
+const useUserStore = create((set, get) => ({
+  user: null,
+  loading: false,
+  error: null,
+  
+  fetchUser: async (id: string) => {
+    set({ loading: true });
+    try {
+      const response = await fetch(`/api/users/${id}`);
+      const user = await response.json();
+      set({ user, loading: false, error: null });
+    } catch (error) {
+      set({ error: error.message, loading: false });
+    }
+  },
 }));
 ```
 
-## Contributing
+### Computed State
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```typescript
+const useCartStore = create((set, get) => ({
+  items: [],
+  
+  addItem: (item) => set((state) => ({
+    items: [...state.items, item],
+  })),
+  
+  get total() {
+    return get().items.reduce((sum, item) => sum + item.price, 0);
+  },
+}));
+```
 
-## License
+### Nested Stores
 
-ISC © 2024 [Rejaul Karim](https://github.com/DeveloperRejaul)
+```typescript
+const useAuthStore = create((set) => ({
+  user: null,
+  login: (user) => set({ user }),
+  logout: () => set({ user: null }),
+}));
 
-## Support
+const useAppStore = create((set) => ({
+  auth: useAuthStore,
+  theme: 'light',
+}));
+```
 
-- 📖 [Documentation](https://github.com/DeveloperRejaul/zustic)
-- 🐛 [Bug Reports](https://github.com/DeveloperRejaul/zustic/issues)
-- 💬 [Discussions](https://github.com/DeveloperRejaul/zustic/discussions)
+---
 
-## Related Projects
+## 🔗 Resources
 
-- [Zustand](https://github.com/pmndrs/zustand) - A small, fast and scalable bearbones state-management solution
-- [Jotai](https://github.com/pmndrs/jotai) - Primitive and flexible state management for React
-- [Recoil](https://recoiljs.org/) - A state management library for React
+- 📖 **[Full Documentation](https://zustic.github.io/)** - Complete API reference and guides
+- 🐛 **[GitHub Issues](https://github.com/DeveloperRejaul/zustic/issues)** - Report bugs and request features
+- 💬 **[Discussions](https://github.com/DeveloperRejaul/zustic/discussions)** - Ask questions and share ideas
+- 📦 **[NPM Package](https://npm.im/zustic)** - Install and view package info
 
-## Changelog
+---
 
-### v1.0.0 (2026)
-- Initial release
-- Basic state management with `create` function
-- TypeScript support
-- React, React Native, and Next.js compatibility
+## 📝 API Reference
+
+### `create<T>(initializer, middlewares?)`
+
+Creates a new store with state and actions.
+
+**Parameters:**
+- `initializer` - Function that receives `set` and `get`, returns initial state
+- `middlewares` (optional) - Array of middleware functions
+
+**Returns:**
+- A hook function that provides access to store state and actions
+
+**Example:**
+```typescript
+const useStore = create((set, get) => ({
+  value: 0,
+  increment: () => set((state) => ({ value: state.value + 1 })),
+  getValue: () => get().value,
+}));
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request to the [GitHub repository](https://github.com/DeveloperRejaul/zustic).
+
+---
+
+## 📄 License
+
+MIT License © 2024 [Rejaul Karim](https://github.com/DeveloperRejaul)
+
+---
+
+## 👨‍💻 Author
+
+Created by **Rejaul Karim** - [GitHub](https://github.com/DeveloperRejaul)
+
+---
+
+<div align="center">
+
+### Made with ❤️ for the React community
+
+⭐ Star us on [GitHub](https://github.com/DeveloperRejaul/zustic) if you find this helpful!
+
+</div>
