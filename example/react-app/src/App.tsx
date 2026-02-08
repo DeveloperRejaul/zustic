@@ -1,7 +1,7 @@
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import {create, type Middleware} from 'zustic'
+import {create, type Middleware, createApi} from 'zustic'
 
 type CreateType = {
   count: number;
@@ -23,9 +23,66 @@ const useCounter = create<CreateType>((set, get) => ({
   getTotal: () => get().count
 }),[logger<CreateType>()])
 
+
+// example of api call
+const api = createApi({
+  baseQuery: async (params) => {
+    try {
+      const endpoind = typeof params ==='string' ? params : params.url;
+      const headers = typeof params !== "string" ? params?.headers: {}
+      const body = typeof params !== "string" ? JSON.stringify(params.body) : undefined;
+      const method = typeof params === "string" ? "GET" : params.method
+
+      const res = await fetch(`https://jsonplaceholder.typicode.com/${endpoind}`, {
+        method,
+        headers,
+        body,
+      })
+      const data = await res.json()
+      return{
+        data
+      }
+    } catch (error) {
+      return{
+        error
+      }
+    }
+  },
+  endpoints(builder) {
+    return {
+      getUser: builder.query<void>({
+        query:() => ({
+          method:"GET",
+          url:"/users"
+        }),
+      }),
+      createPost: builder.mutation<void, {title:string, body:string, userId:number}>({
+        query:(arg)=> ({
+          url:"/posts",
+          method:"POST",
+          body:{
+            ...arg
+          },
+          headers: {
+            'Content-type': 'application/json; charset=UTF-8',
+          },
+        }),
+      })
+    }
+  },
+})
+const {
+  useGetUserQuery,
+  useCreatePostMutation
+} = api
 function App() {
   const {count, inc} = useCounter()
+  const res = useGetUserQuery()
+  const [createPost, result] = useCreatePostMutation()
 
+  console.log("res", res);
+  console.log('result', result);
+  
   return (
     <>
       <div>
@@ -39,7 +96,12 @@ function App() {
       <h1>Vite + React</h1>
       <div className="card">
         <button onClick={() => {
-          inc()
+          // inc()
+          createPost({
+            title: 'foo',
+            body: 'bar',
+            userId: 1,
+          })
         }}>
           count is {count}
         </button>
