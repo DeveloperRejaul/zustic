@@ -2,6 +2,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import {create, type Middleware, createApi} from 'zustic'
+import type { PostRes, User } from './types'
 
 type CreateType = {
   count: number;
@@ -11,9 +12,9 @@ type CreateType = {
 }
 
 const logger = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
-    console.log('prev:', get());
+    // console.log('prev:', get());
     await next(partial);
-    console.log('next:', get());
+    // console.log('next:', get());
 };
 
 const useCounter = create<CreateType>((set, get) => ({
@@ -39,8 +40,8 @@ const api = createApi({
         body,
       })
       const data = await res.json()
-      return{
-        data
+      return {
+       data
       }
     } catch (error) {
       return{
@@ -50,13 +51,38 @@ const api = createApi({
   },
   endpoints(builder) {
     return {
-      getUser: builder.query<void>({
+      getUser: builder.query<{email:string},undefined>({
         query:() => ({
           method:"GET",
           url:"/users"
         }),
+      //  async queryFnc(arg, baseQuery) {
+      //     try {
+      //       return baseQuery("/users")
+      //     } catch  {
+      //       return {
+      //         error: "helllo"
+      //       }
+      //     }
+      // },
+      //  transformResponse(data:User[]){
+      //     return {
+      //       email: data[0].email
+      //     }
+      //   },
+        // transformError(error) {
+        //   return{
+        //     name:error?.name
+        //   }
+        // },
+        onError(err) {
+          console.log(err);
+        },
+        onSuccess(data) {
+          console.log(data);
+        },
       }),
-      createPost: builder.mutation<void, {title:string, body:string, userId:number}>({
+      createPost: builder.mutation<{title:string}, {title:string, body:string}>({
         query:(arg)=> ({
           url:"/posts",
           method:"POST",
@@ -67,6 +93,31 @@ const api = createApi({
             'Content-type': 'application/json; charset=UTF-8',
           },
         }),
+        transformBody(body) {
+          return {
+            ...body,
+            userId: 1,
+          }
+        },
+        transformHeader(header) {
+          return header
+        },
+        // transformResponse(value:PostRes) {
+        //   return{
+        //     title: value.title
+        //   }
+        // },
+        // transformError(error) {
+        //   return{
+        //     name:error?.name
+        //   }
+        // },
+        onError(err) {
+          console.log(err);
+        },
+        onSuccess(data) {
+          console.log(data);
+        },
       })
     }
   },
@@ -77,12 +128,9 @@ const {
 } = api
 function App() {
   const {count, inc} = useCounter()
-  const res = useGetUserQuery()
-  const [createPost, result] = useCreatePostMutation()
+  // const {reFetch} =useGetUserQuery()
+  const [createPost] = useCreatePostMutation()
 
-  console.log("res", res);
-  console.log('result', result);
-  
   return (
     <>
       <div>
@@ -95,13 +143,17 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => {
+        <button onClick={async () => {
+          // const res = await reFetch()
+
+          // console.log(res);
+          
           // inc()
-          createPost({
+         const res = await createPost({
             title: 'foo',
             body: 'bar',
-            userId: 1,
           })
+          console.log(res);
         }}>
           count is {count}
         </button>
