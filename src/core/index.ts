@@ -1,6 +1,6 @@
 'use client';
 import { useSyncExternalStore } from 'react';
-import type { CreateParamsType, Listener, Middleware, SetSateParams } from 'types';
+import type { CreateParamsType, Listener, Middleware, SetSateParams } from './types';
 
 /**
  * Create a store with state and actions.

@@ -1,21 +1,21 @@
 {
   "name": "zustic",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A fast, minimal state management solution for React ecosystems. Works seamlessly with React, Next.js, and React Native, offering predictable state updates with a tiny footprint.",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean --external react",
-    "start:cjs": "node dist/cjs/index.js",
-    "start:esm": "node dist/esm/index.js",
-    "start": "ts-node src/index.ts",
+    "build": "tsup",
     "test": "npm run build && npm link"
   },
   "exports": {
     ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./query": {
+      "types": "./dist/query/index.d.ts",
+      "import": "./dist/query/index.mjs",
+      "require": "./dist/query/index.js"
     }
   },
   "directories": {
