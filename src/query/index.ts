@@ -197,6 +197,7 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
 
   const defs = endpoints(builder);
   const hooks: Record<string, any> = {};
+  const pm = (plugins || []).filter(p=> p.middleware && typeof p.middleware === "function").map(pl=> pl.middleware) as ApiMiddleware[]
 
   for (const key in defs) {
     const def = defs[key];
@@ -213,8 +214,8 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
       error:null,
       arg:null,
       cashExp: 0,
-      query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares ], [...plugins, ...(def.plugins ||[])]),
-      reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares],[...plugins, ...(def.plugins ||[])]),
+      query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares , ...pm], [...plugins, ...(def.plugins ||[])]),
+      reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares,...pm],[...plugins, ...(def.plugins ||[])]),
     }))
 
     if (def.type === 'query') {
