@@ -94,7 +94,7 @@ type BaseQueryReturn<Data = any, Error = any> = | { data: Data; error?: undefine
 export interface CreateApiParams<T extends EndpointsMap> {
   baseQuery: (option: QueryFnReturn) => Promise<BaseQueryReturn>;
   endpoints: (builder: BuilderType) => T;
-  clashTimeout?:number
+  cacheTimeout?:number
   middlewares?: ApiMiddleware[]
   plugins?: ApiPlugin[]
 };
