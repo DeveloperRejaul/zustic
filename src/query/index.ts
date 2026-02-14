@@ -176,7 +176,7 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
   const { 
     baseQuery, 
     endpoints, 
-    clashTimeout = 30*1000,
+    cacheTimeout = 30*1000,
     middlewares=[],
     plugins=[]
   } = params;
@@ -202,6 +202,8 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
     const def = defs[key];
     const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
 
+    const pMiddlewares = (def.plugins || []).filter(p=> p?.middleware && typeof p.middleware === 'function').map(p=> p.middleware) as ApiMiddleware[]
+
     const useQueryState = create<QueryStore<any>>((set, get) => ({
       data:null,
       isLoading:false,
@@ -211,8 +213,8 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
       error:null,
       arg:null,
       cashExp: 0,
-      query:(arg)=> mainQuery(arg, set, get, def, baseQuery, clashTimeout, false, [...middlewares,...(def.middlewares || [])], [...plugins, ...(def.plugins ||[])]),
-      reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,clashTimeout, true, [...middlewares,...(def.middlewares || [])],[...plugins, ...(def.plugins ||[])]),
+      query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares ], [...plugins, ...(def.plugins ||[])]),
+      reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares],[...plugins, ...(def.plugins ||[])]),
     }))
 
     if (def.type === 'query') {

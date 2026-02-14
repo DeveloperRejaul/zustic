@@ -68,7 +68,7 @@ const api = createApi({
       }
     }
   },
-  clashTimeout:5000,
+  cacheTimeout:5000,
   plugins:[
     devtoolsPlugin()
   ],
