@@ -123,7 +123,7 @@ function Counter() {
       <p>Count: {count}</p>
       <button onClick={inc}>➕ Increment</button>
       <button onClick={dec}>➖ Decrement</button>
-      <button onClick={reset}>🔄 Reset</button>
+      <button onClick={reset}>Reset</button>
     </div>
   );
 }
@@ -172,9 +172,9 @@ Extend Zustic stores with powerful middleware for logging, persistence, validati
 
 ```typescript
 const logger = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
-  console.log('🔵 Previous State:', get());
+  console.log('Previous State:', get());
   await next(partial);
-  console.log('🟢 New State:', get());
+  console.log('New State:', get());
 };
 
 export const useStore = create<StoreType>(
@@ -534,7 +534,7 @@ const api = createApi({
 
 ---
 
-## 📱 Multi-Platform Examples
+## Multi-Platform Examples
 
 ### React Web
 
