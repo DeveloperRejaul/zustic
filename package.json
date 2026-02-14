@@ -1,6 +1,6 @@
 {
   "name": "zustic",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A fast, minimal state management solution for React ecosystems. Works seamlessly with React, Next.js, and React Native, offering predictable state updates with a tiny footprint.",
   "scripts": {
     "build": "tsup",
