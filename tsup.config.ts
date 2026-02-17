@@ -13,7 +13,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: true,
-    esbuildOptions(options) {
-        options.drop = ['console', 'debugger']
-    }
+    // esbuildOptions(options) {
+    //     options.drop = ['console', 'debugger']
+    // }
 });

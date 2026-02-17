@@ -22,7 +22,38 @@ function devtoolsPlugin():ApiPlugin {
           return {}
         }
       };
-    }
+}
+
+export interface Root {
+  id: number
+  name: string
+  username: string
+  email: string
+  address: Address
+  phone: string
+  website: string
+  company: Company
+}
+
+export interface Address {
+  street: string
+  suite: string
+  city: string
+  zipcode: string
+  geo: Geo
+}
+
+export interface Geo {
+  lat: string
+  lng: string
+}
+
+export interface Company {
+  name: string
+  catchPhrase: string
+  bs: string
+}
+
 type CreateType = {
   count: number;
   inc: () => void;
@@ -30,18 +61,18 @@ type CreateType = {
   getTotal: () => number;
 }
 
-const logger = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
-    // console.log('prev:', get());
-    await next(partial);
-    // console.log('next:', get());
-};
+// const logger = <T extends object>(): Middleware<T> => (set, get) => (next) => async (partial) => {
+//     // console.log('prev:', get());
+//     await next(partial);
+//     // console.log('next:', get());
+// };
 
 const useCounter = create<CreateType>((set, get) => ({
   count: 0,
   inc: () => set(() => ({ count: get().count + 1 })),
   dec: () => set(() => ({ count: get().count - 1 })),
   getTotal: () => get().count
-}),[logger<CreateType>()])
+}))
 
 
 // example of api call
@@ -70,16 +101,16 @@ const api = createApi({
   },
   cacheTimeout:5000,
   plugins:[
-    devtoolsPlugin()
+    // devtoolsPlugin()
   ],
   endpoints(builder) {
     return {
-      getUser: builder.query<{email:string},{page:number}>({
-        query:() => ({
+      getUser: builder.query<Root[],{page:number, limit:number}>({
+        query:({page, limit}) => ({
           method:"GET",
-          url:"/users"
+          url:`/users?_page=${page}&_limit=${limit}`
         }),
-        plugins:[devtoolsPlugin()],
+        // plugins:[devtoolsPlugin()],
       //  async queryFnc(arg, baseQuery) {
       //     try {
       //       return baseQuery("/users")
@@ -89,7 +120,7 @@ const api = createApi({
       //       }
       //     }
       // },
-      //  transformResponse(data:User[]){
+      //  transformResponse(data){
       //     return {
       //       email: data[0].email
       //     }
@@ -137,10 +168,15 @@ const api = createApi({
         //   }
         // },
         onError(err) {
-          console.log(err);
+
         },
-        onSuccess(data) {
-          console.log(data);
+        onSuccess() {
+          console.log('success');
+          
+          api.utils.updateQueryData('getUser', {page: 1, limit: 10}, (draft) => {
+            draft = draft.map(d=> ({...d,email: "hello world"}))
+            return draft
+          })
         },
       })
     }
@@ -152,10 +188,13 @@ const {
 } = api
 function App() {
   const {count, inc} = useCounter()
-  const res = useGetUserQuery({page: 1})
-  const [createPost] = useCreatePostMutation()
+  const {data} = useGetUserQuery({page:1, limit: 2})
+  const {data:data2} = useGetUserQuery({page:1, limit: 10})
 
-  // console.log(res);
+  console.log('data1', data);
+  console.log('data2', data2);
+  
+  const [createPost] = useCreatePostMutation()
   
   return (
     <>
@@ -175,10 +214,10 @@ function App() {
           // console.log(res);
           
           // inc()
-        //  const res = await createPost({
-        //     title: 'foo',
-        //     body: 'bar',
-        //   })
+          await createPost({
+            title: 'foo',
+            body: 'bar',
+          })
         //   console.log(res);
         }}>
           count is {count}

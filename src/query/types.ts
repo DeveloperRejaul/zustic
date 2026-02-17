@@ -70,12 +70,38 @@ type QueryHookResult<R> = MainMutationState<R> & {
 
 export type EndpointsMap = Record<string, EndpointDef>;
 
+export type InferQueryArg<T> = T extends QueryDef<infer Arg, any> ? Arg : never;
+export type QueryKeys<T> = {
+  [K in keyof T]: T[K] extends QueryDef<any, any> ? K : never
+}[keyof T];
+
+export type InferQueryResult<T> = T extends QueryDef<any, infer Result> ? Result : never;
 
 export type HooksFromEndpoints<T extends EndpointsMap> = {
-  [K in keyof T as  T[K] extends { type: 'query' } ? `use${Capitalize<string & K>}Query` : `use${Capitalize<string & K>}Mutation`]: 
-   T[K] extends QueryDef<infer Arg, infer Result> ? (arg: Arg, option?:QueryHookOption) => MainQueryHookResult<Result> : T[K] extends MutationDef<infer Arg, infer Result>
-        ? () => readonly [(arg: Arg) => Promise<Result>,  MainMutationState<Result>] : never;
+  [K in keyof T as 
+    T[K] extends { type: 'query' }
+      ? `use${Capitalize<string & K>}Query`
+      : `use${Capitalize<string & K>}Mutation`
+  ]:
+    T[K] extends QueryDef<infer Arg, infer Result>
+      ? (arg: Arg, option?: QueryHookOption) => MainQueryHookResult<Result>
+      : T[K] extends MutationDef<infer Arg, infer Result>
+        ? () => readonly [
+            (arg: Arg) => Promise<Result>,
+            MainMutationState<Result>
+          ]
+        : never;
+} & {
+  utils: {
+    updateQueryData: <K extends QueryKeys<T>>(
+      key: K,
+      arg: InferQueryArg<T[K]>,
+      updater: (data: InferQueryResult<T[K]>) => InferQueryResult<T[K]>
+    ) => void;
+  };
 };
+
+
 export type BuilderType = {
   query<Result, Arg = void>(
     config:{
