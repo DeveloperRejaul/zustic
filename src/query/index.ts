@@ -1,11 +1,14 @@
 import { useEffect } from "react";
-import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, MainQueryReturnTypes, QueryHookOption, QueryStore } from "./types";
+import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, MainQueryReturnTypes, QueryHookOption, QueryKeys, QueryStore } from "./types";
 import {create} from '../core';
 
 function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+function createCacheKey(endpoint: string, arg: any) {
+  return `${endpoint}__${JSON.stringify(arg ?? {})}`;
+}
 // handle main core function
 const core = async (
   arg:any, 
@@ -178,7 +181,7 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
     endpoints, 
     cacheTimeout = 30*1000,
     middlewares=[],
-    plugins=[]
+    plugins=[],
   } = params;
 
   const builder: BuilderType = {
@@ -199,31 +202,41 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
   const hooks: Record<string, any> = {};
   const pm = (plugins || []).filter(p=> p.middleware && typeof p.middleware === "function").map(pl=> pl.middleware) as ApiMiddleware[]
 
+
+  const stors = new Map()
+  const actions = new Map()
+
   for (const key in defs) {
     const def = defs[key];
     const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
-
     const pMiddlewares = (def.plugins || []).filter(p=> p?.middleware && typeof p.middleware === 'function').map(p=> p.middleware) as ApiMiddleware[]
-
-    const useQueryState = create<QueryStore<any>>((set, get) => ({
-      data:null,
-      isLoading:false,
-      isError:false,
-      isFetching:false,
-      isSuccess:false,
-      error:null,
-      arg:null,
-      cashExp: 0,
-      query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares , ...pm], [...plugins, ...(def.plugins ||[])]),
-      reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares,...pm],[...plugins, ...(def.plugins ||[])]),
-    }))
-
     if (def.type === 'query') {
       hooks[name] = (
         arg: any,
         option?:QueryHookOption
       ) => {
+        const cacheKey = createCacheKey(key, arg);
+        if (!stors.has(cacheKey)) { 
+          const store = create<QueryStore<any>>((set, get) => {
+            actions.set(cacheKey, {set, get})
+            return{
+              data:null,
+              isLoading:false,
+              isError:false,
+              isFetching:false,
+              isSuccess:false,
+              error:null,
+              arg:null,
+              cashExp: 0,
+              query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares , ...pm], [...plugins, ...(def.plugins ||[])]),
+              reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares,...pm],[...plugins, ...(def.plugins ||[])]),
+            }
+          })
+          stors.set(cacheKey, store);
+        }
         const {skip} = option || {}
+        const useQueryState = stors.get(cacheKey)!
+
         const {
           query,
           error,
@@ -254,6 +267,20 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
 
     if (def.type === 'mutation') {
       hooks[name] = () => {
+        const useQueryState = create<QueryStore<any>>((set, get) => {
+          return{
+            data:null,
+            isLoading:false,
+            isError:false,
+            isFetching:false,
+            isSuccess:false,
+            error:null,
+            arg:null,
+            cashExp: 0,
+            query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares , ...pm], [...plugins, ...(def.plugins ||[])]),
+            reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares,...pm],[...plugins, ...(def.plugins ||[])]),
+          }
+        })
         const {query, ...res} = useQueryState()
 
         return [
@@ -264,7 +291,19 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
     }
   }
 
-  return hooks as HooksFromEndpoints<T>;
+  function updateQueryData <K extends QueryKeys<T>>(key: K,  arg: InferQueryArg<T[K]>, updater: (data: InferQueryResult<T[K]>) => InferQueryResult<T[K]>) {
+    const cacheKey = createCacheKey(key as string, arg);
+    const action = actions.get(cacheKey);
+    if (!action) return;
+    action.set({data: updater(action.get()?.data)})
+  }
+
+  return {
+    ...hooks,
+    utils:{
+      updateQueryData,
+    },
+  } as HooksFromEndpoints<T> ;
 }
 
 export {
