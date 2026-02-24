@@ -1,190 +1,66 @@
 import { useEffect } from "react";
-import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, MainQueryReturnTypes, QueryHookOption, QueryKeys, QueryStore } from "./types";
+import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, QueryHookOption, QueryKeys, QueryStore } from "./types";
 import {create} from '../core';
+import { queryFn } from "./query";
+import { capitalize, createCacheKey } from "./utils";
 
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function createCacheKey(endpoint: string, arg: any) {
-  return `${endpoint}__${JSON.stringify(arg ?? {})}`;
-}
-// handle main core function
-const core = async (
-  arg:any, 
-  set:any, 
-  get:any,
-  def:any,
-  baseQuery:any,
-  cashTimeout:number, 
-  isRefetch:boolean
-):MainQueryReturnTypes => {
-  set({isLoading: true});
-  try {
-    let data=null;
-    let error=null;
-
-    // impliment cashing macanisom
-    const cashTime = get().cashExp;
-    const now = Date.now()
-    let isCashAvilable = false;
-    if(isRefetch){
-      isCashAvilable = false 
-    }else if (JSON.stringify(get().arg || {}) !== JSON.stringify(arg || {})) {
-      isCashAvilable= false
-    }else{
-      isCashAvilable = cashTime>= now
-    }
-
-
-    if(isCashAvilable) {
-      data = get().data;
-    }
-
-    if(!isCashAvilable && def?.queryFnc) {
-      set({isFetching: true});
-      const {data:d, error:e} = await def?.queryFnc?.(arg, baseQuery)
-      if(d) data = d
-      if(e) error = e
-    }else{
-      const params = def.queryFn(arg);
-    
-      // handle header transform
-      if(def?.transformHeader){
-        params['headers'] = await def?.transformHeader?.(params?.headers)
-      }
-
-      // handle body transform
-      if(def?.transformBody){
-        params['body'] = await def?.transformBody?.(params?.body)
-      }
-
-      if(!isCashAvilable) {
-        set({isFetching: true});
-        const {data:d, error:e} = await baseQuery(params)
-        if(d) data = d
-        if(e) error = e
-      }
-    }
-
-    // handle success response
-    if(data){
-      // handle transform response
-      if(def?.transformResponse) {
-        data = await def.transformResponse?.(data,get().data)
-      }
-      if(def?.onSuccess) {
-        await def.onSuccess?.(data)
-      }
-    }
-
-    // handle error response
-    if(error) {
-      // handle transform error
-      if(def?.transformError){
-        error = await def.transformError?.(error,get().error)
-      }
-      if(def?.onError) {
-        await def.onError?.(error)
-      }
-    }
-
-    if(data) {
-      set({
-        data: data,
-        isSuccess: true,
-        isLoading: false,
-        isFetching: false,
-        cashExp: isCashAvilable ? cashTime : (Date.now() + cashTimeout),
-        arg,
-      });
-      return {data}
-    }
-    set({ 
-      isLoading: false,
-      isSuccess: false,
-      isFetching: false,
-      isError: true,
-      error: error,
-      arg,
-    });
-    return {error}
-  } catch(e) {
-    set({ 
-      isLoading: false,
-      isSuccess: false,
-      isFetching: false,
-      isError: true,
-      error: e,
-      arg,
-    });
-    return{error: e}
-  }
-};
-
-// handle main query with middleware
-async function mainQuery (
-  arg:any, 
-  set:any, 
-  get:any,
-  def:any,
-  baseQuery:any,
-  cashTimeout:number, 
-  isRefetch:boolean, 
-  middlewares: ApiMiddleware[],
-  plugins: ApiPlugin[]
-) {
-
-  const ctx = { arg, def, get, set };
-  // beforeQuery hooks
-  for (const p of plugins) {
-    await p.beforeQuery?.(ctx);
-  }
-
-  // handle middleware
-  let index = -1;
-
-  const runner = async (i: number): Promise<any> => {
-    if (i <= index) throw new Error("next() called multiple times");
-    index = i;
-
-    const middleware = middlewares[i];
-
-    if (!middleware) {
-      return core(arg, set, get,def,baseQuery,cashTimeout, isRefetch);
-    }
-
-    return middleware(ctx,() => runner(i + 1));
-  };
-
-  const result = await runner(0);
-
-  // afterQuery hooks
-  for (const p of plugins) {
-    await p.afterQuery?.(result, ctx);
-  }
-
-  // global error hook
-  if (result?.error) {
-    for (const p of plugins) {
-      await p.onError?.(result.error, ctx);
-    }
-  }
-
-
-  return result
-}
-
-function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFromEndpoints<T> {
+/**
+ * Creates an API instance with typed queries, mutations, and utilities.
+ * 
+ * The createApi function is the main entry point for setting up your API.
+ * It generates typed hooks for each endpoint defined and provides utility functions
+ * for cache management.
+ * 
+ * @template TagTypes - Union type of tag names for cache invalidation
+ * @template T - EndpointsMap type with all endpoints
+ * 
+ * @param params - Configuration object containing:
+ *   - baseQuery: Function to make HTTP requests
+ *   - endpoints: Function that defines all API endpoints
+ *   - cacheTimeout: (Optional) Cache duration in milliseconds (default: 30s)
+ *   - middlewares: (Optional) Global middleware functions
+ *   - plugins: (Optional) Plugin objects with lifecycle hooks
+ *   - tagTypes: (Optional) Array of tag type strings for cache invalidation
+ * 
+ * @returns Object containing:
+ *   - Generated hooks (useXxxQuery, useXxxMutation) for each endpoint
+ *   - utils object with updateQueryData and invalidateTags functions
+ * 
+ * @example
+ * ```typescript
+ * const api = createApi({
+ *   baseQuery: async (params) => {
+ *     const response = await fetch(params.url, {method: params.method});
+ *     return {data: await response.json()};
+ *   },
+ *   tagTypes: ['users', 'posts'] as const,
+ *   endpoints: (builder) => ({
+ *     getUsers: builder.query<User[]>({
+ *       query: () => ({url: '/users', method: 'GET'}),
+ *       providesTags: ['users'],
+ *     }),
+ *     createUser: builder.mutation<User, CreateUserInput>({
+ *       query: (body) => ({url: '/users', method: 'POST', body}),
+ *       invalidateTags: ['users'],
+ *     }),
+ *   }),
+ * });
+ * ```
+ */
+function createApi<
+  const TagTypes extends readonly string[] = readonly [],
+  T extends EndpointsMap<TagTypes> = EndpointsMap<TagTypes>
+>(params: CreateApiParams<T, TagTypes>): HooksFromEndpoints<T, TagTypes> {
   const { 
     baseQuery, 
     endpoints, 
     cacheTimeout = 30*1000,
     middlewares=[],
     plugins=[],
+    tagTypes=[]
   } = params;
 
-  const builder: BuilderType = {
+  const builder: BuilderType<TagTypes> = {
     query: (config) => ({
       type: 'query',
       queryFn: config.query,
@@ -228,8 +104,30 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
               error:null,
               arg:null,
               cashExp: 0,
-              query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares , ...pm], [...plugins, ...(def.plugins ||[])]),
-              reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares,...pm],[...plugins, ...(def.plugins ||[])]),
+              query:(arg)=> queryFn(
+                arg, 
+                set, 
+                get, 
+                def, 
+                baseQuery, 
+                cacheTimeout, 
+                false, 
+                [...middlewares,...(def.middlewares || []),
+                ...pMiddlewares , ...pm], 
+                [...plugins, ...(def.plugins ||[])]
+              ),
+              reFetch:() => queryFn(
+                get()?.arg, 
+                set, 
+                get, 
+                def, 
+                baseQuery,
+                cacheTimeout, 
+                true, 
+                [...middlewares,...(def.middlewares || []), 
+                ...pMiddlewares,...pm],
+                [...plugins, ...(def.plugins ||[])]
+              ),
             }
           })
           stors.set(cacheKey, store);
@@ -266,22 +164,41 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
     }
 
     if (def.type === 'mutation') {
+      let mutationStore: any = null;
+      
       hooks[name] = () => {
-        const useQueryState = create<QueryStore<any>>((set, get) => {
-          return{
-            data:null,
-            isLoading:false,
-            isError:false,
-            isFetching:false,
-            isSuccess:false,
-            error:null,
-            arg:null,
-            cashExp: 0,
-            query:(arg)=> mainQuery(arg, set, get, def, baseQuery, cacheTimeout, false, [...middlewares,...(def.middlewares || []),...pMiddlewares , ...pm], [...plugins, ...(def.plugins ||[])]),
-            reFetch:() => mainQuery(get()?.arg, set, get, def, baseQuery,cacheTimeout, true, [...middlewares,...(def.middlewares || []), ...pMiddlewares,...pm],[...plugins, ...(def.plugins ||[])]),
-          }
-        })
-        const {query, ...res} = useQueryState()
+        if (!mutationStore) {
+          mutationStore = create<QueryStore<any>>((set, get) => {
+            return{
+              data:null,
+              isLoading:false,
+              isError:false,
+              isSuccess:false,
+              error:null,
+              arg:null,
+              cashExp: 0,
+              query:(arg)=> queryFn(
+                arg,
+                set, 
+                get, 
+                def, 
+                baseQuery, 
+                0, 
+                false, 
+                [...middlewares,...(def.middlewares || []),
+                ...pMiddlewares , ...pm],
+                [...plugins, ...(def.plugins ||[])]
+              ),
+            }
+          })
+        }
+        
+        const {
+          cashExp,
+          arg,
+          query,
+          ...res
+        } = mutationStore()
 
         return [
           query,
@@ -291,6 +208,25 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
     }
   }
 
+  /**
+   * Updates cached query data for a specific endpoint and arguments.
+   * 
+   * Useful for optimistic updates or manual cache manipulation.
+   * The updater function receives the current data and should return the updated data.
+   * 
+   * @template K - The endpoint key
+   * @param key - The endpoint name (e.g., 'getUser', 'getPosts')
+   * @param arg - The arguments used when calling the endpoint
+   * @param updater - Function that receives current data and returns updated data
+   * 
+   * @example
+   * ```typescript
+   * api.utils.updateQueryData('getUser', {id: 1}, (draft) => ({
+   *   ...draft,
+   *   name: 'Updated Name'
+   * }));
+   * ```
+   */
   function updateQueryData <K extends QueryKeys<T>>(key: K,  arg: InferQueryArg<T[K]>, updater: (data: InferQueryResult<T[K]>) => InferQueryResult<T[K]>) {
     const cacheKey = createCacheKey(key as string, arg);
     const action = actions.get(cacheKey);
@@ -298,12 +234,48 @@ function createApi<T extends EndpointsMap>(params: CreateApiParams<T> ): HooksFr
     action.set({data: updater(action.get()?.data)})
   }
 
+  /**
+   * Invalidates cached queries by tag names.
+   * 
+   * Clears the cache for all endpoints whose providesTags match the provided tags.
+   * Supports both simple string tags and object tags with specific IDs.
+   * 
+   * Useful after mutations to ensure fresh data is fetched.
+   * 
+   * @param tags - Array of tag strings or tag objects to invalidate
+   *   - String format: 'users' (invalidates all queries providing 'users' tag)
+   *   - Object format: {type: 'posts', id: '123'} (invalidates specific post with id 123)
+   * 
+   * @example
+   * ```typescript
+   * // Invalidate all 'users' related data
+   * api.utils.invalidateTags(['users']);
+   * 
+   * // Invalidate specific items
+   * api.utils.invalidateTags([
+   *   {type: 'users', id: '1'},
+   *   {type: 'posts', id: 'post-abc'}
+   * ]);
+   * 
+   * // Mixed format
+   * api.utils.invalidateTags(['users', {type: 'posts', id: '123'}]);
+   * ```
+   */
+  function invalidateTags(tags?: TagTypes extends readonly [] ? any[] : (TagTypes[number] | {type: TagTypes[number]; id?: string | number})[]) {
+    
+  }
+
+  // function resetApiState(){}
+  // function injectEndpoints(){}
+
+
   return {
     ...hooks,
     utils:{
       updateQueryData,
+      invalidateTags
     },
-  } as HooksFromEndpoints<T> ;
+  } as HooksFromEndpoints<T, TagTypes> ;
 }
 
 export {
