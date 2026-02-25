@@ -2,7 +2,7 @@
 
 # Zustic
 
-### Lightweight State Management for Modern React Applications
+### Ultra-Lightweight State Management for Modern React Applications
 
 [![npm version](https://img.shields.io/npm/v/zustic.svg)](https://npm.im/zustic)
 [![npm downloads](https://img.shields.io/npm/dm/zustic.svg)](https://npm.im/zustic)

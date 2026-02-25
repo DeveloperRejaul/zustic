@@ -93,10 +93,7 @@ const applyMiddleware = <T>(
     return set;
   }
 
-  return middlewares.reduceRight(
-    (next, mw) => mw(set, get)(next),
-    set
-  );
+  return middlewares.reduceRight((next, mw) => mw(set, get)(next),set);
 };
 
 export {
