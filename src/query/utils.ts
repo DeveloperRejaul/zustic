@@ -23,3 +23,28 @@ export function createCacheKey(endpoint: string, arg: any) {
   return `${endpoint}__${JSON.stringify(arg ?? {})}`;
 }
 
+
+// Helper function to check if a query tag matches an invalidation tag
+export function tagMatches (invalidTag: any, queryTag: any): boolean {
+    const isInvalidTagString = typeof invalidTag === 'string';
+    const isQueryTagString = typeof queryTag === 'string';
+
+    // String invalidation tag matches string query tag
+    if (isInvalidTagString && isQueryTagString) {
+      return invalidTag === queryTag;
+    }
+
+    // Object invalidation tag matches object query tag by type (and optionally by id)
+    if (!isInvalidTagString && !isQueryTagString) {
+      const typeMatch = invalidTag.type === queryTag.type;
+      const idMatch = !invalidTag.id || invalidTag.id === queryTag.id;
+      return typeMatch && idMatch;
+    }
+
+    // String tag does NOT match object tag (different formats)
+    // Object tag does NOT match string tag (different formats)
+    return false;
+};
+
+
+

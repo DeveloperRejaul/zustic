@@ -283,6 +283,8 @@ type QueryHookResult<R> = MainMutationState<R> & {
   arg: any
   /** Cache expiration timestamp */
   cashExp: number
+  /** Cache tags provided by this query result */
+  tags?: any
 };
 
 
@@ -408,6 +410,37 @@ export type HooksFromEndpoints<
      * ```
      */
     invalidateTags: TagTypes extends readonly [] ? (tags?: any[]) => void : (tags?: TagTypes[number][]) => void;
+
+    /**
+     * Reset the entire API state, clearing all cached data and refetching active queries.
+      * Useful for scenarios like user logout, where you want to clear all user-specific data.
+      * This will set all cache expiration times to 0 and trigger refetches for any active queries.
+      * @example
+      * ```typescript
+      * // Reset API state on user logout
+      * const handleLogout = () => {
+      *   api.utils.resetApiState();
+      *   // Additional logout logic...
+      * };
+      * ```
+     */
+    resetApiState(): void
+    /**
+     * Clears cache and refetches a specific query by endpoint key and arguments.
+     * 
+     * Useful when you want to refresh a single query without affecting others.
+     * 
+     * @template K - The endpoint key
+     * @param key - The endpoint name (e.g., 'getUser', 'getUsers')
+     * @param arg - The arguments used when calling the endpoint
+     * 
+     * @example
+     * ```typescript
+     * // Refresh a specific user query
+     * api.utils.refetchQuery('getUser', {id: 1});
+     * ```
+     */
+    refetchQuery<K extends QueryKeys<T>>(key: K, arg: InferQueryArg<T[K]>): void
   };
 };
 

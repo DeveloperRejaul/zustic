@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, QueryHookOption, QueryKeys, QueryStore } from "./types";
 import {create} from '../core';
 import { queryFn } from "./query";
-import { capitalize, createCacheKey } from "./utils";
+import { capitalize, createCacheKey, tagMatches } from "./utils";
 
 /**
  * Creates an API instance with typed queries, mutations, and utilities.
@@ -82,57 +82,57 @@ function createApi<
   const stors = new Map()
   const actions = new Map()
 
-  for (const key in defs) {
-    const def = defs[key];
-    const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
-    const pMiddlewares = (def.plugins || []).filter(p=> p?.middleware && typeof p.middleware === 'function').map(p=> p.middleware) as ApiMiddleware[]
+  /**
+   * Creates a hook for a query or mutation endpoint.
+   * Extracted common logic to avoid code duplication.
+   * 
+   * @internal Internal helper function
+   */
+  const createEndpointHook = (key: string, def: any) => {
+    const pMiddlewares = (def.plugins || []).filter((p: any) => p?.middleware && typeof p.middleware === 'function').map((p: any) => p.middleware) as ApiMiddleware[]
+
     if (def.type === 'query') {
-      hooks[name] = (
-        arg: any,
-        option?:QueryHookOption
-      ) => {
+      return (arg: any, option?: QueryHookOption) => {
         const cacheKey = createCacheKey(key, arg);
-        if (!stors.has(cacheKey)) { 
+        if (!stors.has(cacheKey)) {
           const store = create<QueryStore<any>>((set, get) => {
-            actions.set(cacheKey, {set, get})
-            return{
-              data:null,
-              isLoading:false,
-              isError:false,
-              isFetching:false,
-              isSuccess:false,
-              error:null,
-              arg:null,
+            actions.set(cacheKey, { set, get })
+            return {
+              data: null,
+              isLoading: false,
+              isError: false,
+              isFetching: false,
+              isSuccess: false,
+              error: null,
+              arg: null,
               cashExp: 0,
-              query:(arg)=> queryFn(
-                arg, 
-                set, 
-                get, 
-                def, 
-                baseQuery, 
-                cacheTimeout, 
-                false, 
-                [...middlewares,...(def.middlewares || []),
-                ...pMiddlewares , ...pm], 
-                [...plugins, ...(def.plugins ||[])]
-              ),
-              reFetch:() => queryFn(
-                get()?.arg, 
-                set, 
-                get, 
-                def, 
+              query: (arg) => queryFn(
+                arg,
+                set,
+                get,
+                def,
                 baseQuery,
-                cacheTimeout, 
-                true, 
-                [...middlewares,...(def.middlewares || []), 
-                ...pMiddlewares,...pm],
-                [...plugins, ...(def.plugins ||[])]
+                cacheTimeout,
+                false,
+                [...middlewares, ...(def.middlewares || []), ...pMiddlewares, ...pm],
+                [...plugins, ...(def.plugins || [])]
+              ),
+              reFetch: () => queryFn(
+                get()?.arg,
+                set,
+                get,
+                def,
+                baseQuery,
+                cacheTimeout,
+                true,
+                [...middlewares, ...(def.middlewares || []), ...pMiddlewares, ...pm],
+                [...plugins, ...(def.plugins || [])]
               ),
             }
           })
           stors.set(cacheKey, store);
         }
-        const {skip} = option || {}
+        const { skip } = option || {}
         const useQueryState = stors.get(cacheKey)!
 
         const {
@@ -145,13 +145,13 @@ function createApi<
           data
         } = useQueryState()
 
-        useEffect(()=>{
-          if(skip){
+        useEffect(() => {
+          if (skip) {
             return
           }
           query(arg)
-        },[JSON.stringify(arg || {})])
-        
+        }, [JSON.stringify(arg || {})])
+
         return {
           error,
           isError,
@@ -165,47 +165,60 @@ function createApi<
 
     if (def.type === 'mutation') {
       let mutationStore: any = null;
-      
-      hooks[name] = () => {
+
+      return () => {
         if (!mutationStore) {
           mutationStore = create<QueryStore<any>>((set, get) => {
-            return{
-              data:null,
-              isLoading:false,
-              isError:false,
-              isSuccess:false,
-              error:null,
-              arg:null,
+            return {
+              data: null,
+              isLoading: false,
+              isError: false,
+              isSuccess: false,
+              error: null,
+              arg: null,
               cashExp: 0,
-              query:(arg)=> queryFn(
+              query: (arg) => queryFn(
                 arg,
-                set, 
-                get, 
-                def, 
-                baseQuery, 
-                0, 
-                false, 
-                [...middlewares,...(def.middlewares || []),
-                ...pMiddlewares , ...pm],
-                [...plugins, ...(def.plugins ||[])]
+                set,
+                get,
+                def,
+                baseQuery,
+                0,
+                false,
+                [...middlewares, ...(def.middlewares || []), ...pMiddlewares, ...pm],
+                [...plugins, ...(def.plugins || [])]
               ),
             }
           })
         }
-        
+
         const {
-          cashExp,
-          arg,
           query,
-          ...res
+          error,
+          isError,
+          isLoading,
+          isSuccess,
+          data
         } = mutationStore()
 
         return [
           query,
-          res,
+          {
+            error,
+            isError,
+            isLoading,
+            isSuccess,
+            data
+          }
         ] as const;
       };
     }
+  };
+
+  for (const key in defs) {
+    const def = defs[key];
+    const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
+    hooks[name] = createEndpointHook(key, def);
   }
 
   /**
@@ -256,26 +269,119 @@ function createApi<
    *   {type: 'users', id: '1'},
    *   {type: 'posts', id: 'post-abc'}
    * ]);
-   * 
-   * // Mixed format
-   * api.utils.invalidateTags(['users', {type: 'posts', id: '123'}]);
    * ```
    */
   function invalidateTags(tags?: TagTypes extends readonly [] ? any[] : (TagTypes[number] | {type: TagTypes[number]; id?: string | number})[]) {
-    
+    if (!tags || tags.length === 0) return;
+
+    // Iterate through all cached queries
+    for (const [, action] of actions.entries()) {
+      const state = action.get();
+      const queryTags = state?.tags || [];
+
+      // Check if any query tag matches any invalidation tag
+      const shouldInvalidate = tags.some((invalidTag: any) =>queryTags.some((queryTag: any) => tagMatches(invalidTag, queryTag)));
+
+      // Clear the cache for matching queries
+      if (shouldInvalidate) {
+        action.set({ cashExp: 0 });
+        state?.reFetch?.()
+      }
+    }
   }
 
-  // function resetApiState(){}
-  // function injectEndpoints(){}
+  /**
+   * Resets the entire API state by clearing the cache for all queries.
+   * 
+   * This function iterates through all cached queries and sets their cashExp to 0,
+   * which effectively invalidates all cached data. It then triggers a re-fetch for each query.
+   * 
+   * Useful for scenarios like user logout, where you want to clear all sensitive data from the cache.
+   * 
+   * @example
+   * ```typescript
+   * // Reset the entire API state (e.g., on user logout)
+   * api.utils.resetApiState();
+   * ```
+   */
+  function resetApiState(){
+    for(const [, action] of actions.entries()) {
+      action.set({cashExp: 0})
+      action.get()?.reFetch?.()
+    }
+  }
+
+  /**
+   * Clears cache and refetches a specific query by endpoint key and arguments.
+   * 
+   * Useful when you want to refresh a single query without affecting others.
+   * 
+   * @template K - The endpoint key
+   * @param key - The endpoint name (e.g., 'getUser', 'getUsers')
+   * @param arg - The arguments used when calling the endpoint
+   * 
+   * @example
+   * ```typescript
+   * // Refresh a specific user query
+   * api.utils.refetchQuery('getUser', {id: 1});
+   * ```
+   */
+  function refetchQuery <K extends QueryKeys<T>>(key: K,  arg: InferQueryArg<T[K]>) {
+    const cacheKey = createCacheKey(key as string, arg);
+    const action = actions.get(cacheKey);
+    if (!action) return;
+    action.set({ cashExp: 0 });
+    action.get()?.reFetch?.()
+  }
+
+  /**
+   * Dynamically inject new endpoints into the API after creation.
+   * 
+   * Useful for code-splitting, lazy-loading endpoints, or building modular APIs.
+   * 
+   * @param config - Configuration with endpoints to inject
+   * 
+   * @example
+   * ```typescript
+   * const api = createApi({...});
+   * 
+   * // Later, inject more endpoints
+   * api.injectEndpoints({
+   *   endpoints: (builder) => ({
+   *     getProfile: builder.query({
+   *       query: () => '/profile',
+   *       providesTags: ['profile']
+   *     })
+   *   })
+   * });
+   * ```
+   */
+  function injectEndpoints(config: {endpoints: (builder: BuilderType<TagTypes>) => Partial<T>}): void {
+    const newEndpoints = config.endpoints(builder);
+
+    for (const key in newEndpoints) {
+      const def = newEndpoints[key as keyof typeof newEndpoints] as any;
+      const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
+      
+      // Use the same helper function to avoid code duplication
+      hooks[name] = createEndpointHook(key, def);
+
+      // Add to defs so it's not injected again
+      (defs as any)[key] = def;
+    }
+  }
 
 
   return {
     ...hooks,
     utils:{
       updateQueryData,
-      invalidateTags
+      invalidateTags,
+      resetApiState,
+      refetchQuery
     },
-  } as HooksFromEndpoints<T, TagTypes> ;
+    injectEndpoints
+  } as HooksFromEndpoints<T, TagTypes> & { injectEndpoints: typeof injectEndpoints } ;
 }
 
 export {

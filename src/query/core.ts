@@ -101,6 +101,16 @@ export const coreFn = async (
     }
 
     if(data) {
+      // Compute tags after successful response
+      let tags = null;
+      if(def.providesTags) {
+        if(typeof def.providesTags === 'function') {
+          tags = def.providesTags(data);
+        } else if(Array.isArray(def.providesTags)) {
+          tags = def.providesTags;
+        }
+      }
+
       set({
         data: data,
         isSuccess: true,
@@ -108,6 +118,7 @@ export const coreFn = async (
         isFetching: false,
         cashExp: isCashAvilable ? cashTime : (Date.now() + cashTimeout),
         arg,
+        tags: tags,
       });
       return {data}
     }

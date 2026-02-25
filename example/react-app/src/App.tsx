@@ -59,9 +59,19 @@ const api = createApi({
         method: 'GET',
         url: `/users?_page=${page}&_limit=${limit}`
       }),
-      providesTags: ['users'],
+      providesTags: (res)=>{
+       return res.map(user => ({ type: 'users', id: user.id }))
+      },
     }),
-
+    getUser: builder.query<User[], { page: number; limit: number }>({
+      query: ({ page, limit }) => ({
+        method: 'GET',
+        url: `/users?_page=${page}&_limit=${limit}`
+      }),
+      providesTags: ()=>{
+        return ['users']
+      },
+    }),
     // Mutation to create a post
     createPost: builder.mutation<
       { id: number; title: string },
@@ -81,27 +91,27 @@ const api = createApi({
         userId: 1
       }),
       onSuccess: () => {
-        // Invalidate users cache on successful post creation
-        api.utils.invalidateTags(['posts'])
-        
-        // Optionally update query data optimistically
-        api.utils.updateQueryData('getUsers', { page: 1, limit: 10 }, (draft) => {
-          return draft // You could mutate draft here if needed
-        })
+        api.utils.invalidateTags(['users'])
       },
     })
   })
 })
 
-const { useGetUsersQuery, useCreatePostMutation } = api
-// ============ REACT COMPONENT ============
+// ============ DESTRUCTURE HOOKS FROM API ============
+
+// Destructure hooks directly from the API object
+const { useGetUsersQuery, useCreatePostMutation, useGetUserQuery } = api
+
+
+
 
 function App() {
   // Use the counter store
   const { count, inc, dec } = useCounter()
 
   // Use the API queries and mutations
-  const { data: users} = useGetUsersQuery({ page: 1, limit: 10 })
+  const { data: users } = useGetUsersQuery({ page: 1, limit: 10 })
+  const { data: user } = useGetUserQuery({ page: 1, limit: 10 })
   const [createPost, res] = useCreatePostMutation()
 
   const handleCreatePost = () => {
