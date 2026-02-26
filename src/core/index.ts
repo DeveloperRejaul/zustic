@@ -78,9 +78,7 @@ function create<T extends object>(
     };
   };
 
-
-  // React hook
-  return () => useSyncExternalStore(subscribe, getState)
+  return <U = T>(selector: (state: T) => U = (s) => s as unknown as U) => useSyncExternalStore(subscribe, () => selector(state))
 }
 
 
@@ -97,5 +95,5 @@ const applyMiddleware = <T>(
 };
 
 export {
-    create
+  create
 }
