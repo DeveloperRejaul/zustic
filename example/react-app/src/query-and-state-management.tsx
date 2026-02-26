@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import './App.css'
 import { create } from 'zustic'
 import { createApi } from 'zustic/query'
+import { produce } from 'immer'
 
 // Type definitions for API response
 interface User {
@@ -27,6 +29,25 @@ const useCounter = create<CounterState>((set, get) => ({
   dec: () => set(() => ({ count: get().count - 1 }))
 }))
 
+const immerMiddleware = (set: any, get: any) => (next: any) => (partial: any) => {
+  if (typeof partial === 'function') {
+    next(produce(get(), partial))
+    return
+  }
+   next(partial)
+}
+
+
+const useUserStore = create<{ data: User[] }>((set) => ({
+  data: [],
+  setUsers: (data: User[]) => set({ data }),
+  updateUser: (id:number) => {
+    set((state) => {
+      state.data[id].name = 'Updated Name'
+      return state
+    })
+  }
+}), [immerMiddleware])
 
 // ============ API QUERIES & MUTATIONS ============
 
@@ -105,12 +126,13 @@ const { useGetUsersQuery, useCreatePostMutation, useGetUserQuery } = api
 
 
 
-function App() {
+function QueryAndStateManagement() {
   // Use the counter store
   const { count, inc, dec } = useCounter()
+  const { data, setUsers , updateUser} = useUserStore()
 
   // Use the API queries and mutations
-  const { data: users } = useGetUsersQuery({ page: 1, limit: 10 })
+  const { data: users, isLoading,isSuccess } = useGetUsersQuery({ page: 1, limit: 10 })
   const { data: user } = useGetUserQuery({ page: 1, limit: 10 })
   const [createPost, res] = useCreatePostMutation()
 
@@ -121,13 +143,21 @@ function App() {
     })
   }
 
-  console.log(res);
+  useEffect(()=>{
+    if(users && !isLoading && isSuccess) {
+      setUsers(users)
+    }
+  },[users])
+
+
+console.log(data);
+
   
   
 
   return (
     <div className="container">
-      <h1>Zustic Example</h1>
+      <h1 onClick={() => updateUser(1)}>Zustic Example</h1>
 
       {/* Counter Section */}
       <section>
@@ -166,4 +196,6 @@ function App() {
   )
 }
 
-export default App
+export default QueryAndStateManagement
+
+
