@@ -1,6 +1,4 @@
-// handle main core function
-
-import { MainQueryReturnTypes } from "./types";
+import type { MainQueryReturnTypes } from "./types";
 
 /**
  * Core query execution function that handles data fetching, caching, and error management.
@@ -31,6 +29,23 @@ export const coreFn = async (
   isRefetch:boolean
 ):MainQueryReturnTypes => {
   set({isLoading: true});
+
+  // create queryFulfilled promise controller
+  let resolveQuery: any;
+  let rejectQuery: any;
+
+  const queryFulfilled = new Promise((resolve, reject) => {
+    resolveQuery = resolve;
+    rejectQuery = reject;
+  });
+
+  // trigger lifecycle hook
+  if (def?.onQueryStarted) {
+    try {
+      def.onQueryStarted(arg, { queryFulfilled });
+    } catch {}
+  }
+
   try {
     let data=null;
     let error=null;
@@ -82,10 +97,10 @@ export const coreFn = async (
     if(data){
       // handle transform response
       if(def?.transformResponse) {
-        data = await def.transformResponse?.(data,get().data)
+        data = await def.transformResponse?.(data,get().data, arg)
       }
       if(def?.onSuccess) {
-        await def.onSuccess?.(data)
+        await def.onSuccess?.(data, arg)
       }
     }
 
@@ -93,10 +108,10 @@ export const coreFn = async (
     if(error) {
       // handle transform error
       if(def?.transformError){
-        error = await def.transformError?.(error,get().error)
+        error = await def.transformError?.(error,get().error, arg)
       }
       if(def?.onError) {
-        await def.onError?.(error)
+        await def.onError?.(error, arg)
       }
     }
 
@@ -120,6 +135,10 @@ export const coreFn = async (
         arg,
         tags: tags,
       });
+
+      // henadle onQuery resolve
+      resolveQuery?.({ data });
+
       return {data}
     }
     set({ 
@@ -130,6 +149,9 @@ export const coreFn = async (
       error: error,
       arg,
     });
+
+    // henadle onQuery reject
+    rejectQuery?.(error);
     return {error}
   } catch(e) {
     set({ 
@@ -140,6 +162,8 @@ export const coreFn = async (
       error: e,
       arg,
     });
+    // henadle onQuery reject
+    rejectQuery?.(e);
     return{error: e}
   }
 };

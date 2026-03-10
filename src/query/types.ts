@@ -16,7 +16,7 @@ type QueryFnObj = {
   /** The API endpoint URL */
   url: string;
   /** HTTP method (GET, POST, PUT, DELETE, PATCH) */
-  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
   /** Optional request body */
   body?: any,
   /** Optional HTTP headers */
@@ -77,13 +77,13 @@ type ApiOptionBase<Arg, R> = {
    * Transform the response data before storing in cache.
    * Useful for normalizing, filtering, or restructuring API responses.
    */
-  transformResponse?: (currData: any, preData: any) => Promise<R> | R;
+  transformResponse?: (currData: any, preData: any, arg:Arg) => Promise<R> | R;
   
   /**
    * Transform error responses for consistent error handling.
    * Useful for extracting error messages or codes.
    */
-  transformError?: (currError: any, preError: any) => Promise<any> | any;
+  transformError?: (currError: any, preError: any, arg:Arg) => Promise<any> | any;
   
   /**
    * Transform request body before sending to API.
@@ -101,13 +101,13 @@ type ApiOptionBase<Arg, R> = {
    * Called when the endpoint encounters an error.
    * Useful for error logging, showing toast messages, or retries.
    */
-  onError?: (err: any) => Promise<void> | void;
+  onError?: (err: any, arg:Arg) => Promise<void> | void;
   
   /**
    * Called when the endpoint succeeds.
    * Useful for success logging, showing notifications, or side effects.
    */
-  onSuccess?: (data: R) => Promise<void> | void;
+  onSuccess?: (data: R, arg:Arg) => Promise<void> | void;
   
   /**
    * Custom query function that bypasses the base query.
@@ -115,6 +115,22 @@ type ApiOptionBase<Arg, R> = {
    */
   queryFnc?: (arg: Arg, baseQuery: CreateApiParams<any>['baseQuery']) => MainQueryReturnTypes;
   
+  /**
+   * Lifecycle hook that runs when the query starts.
+   * Useful for optimistic updates, cache manipulation, or side effects.
+   *
+   * `queryFulfilled` resolves when the request succeeds
+   * and rejects when the request fails.
+   */
+  //TODO
+  onQueryStarted?: (
+    arg: Arg,
+    api: {
+      queryFulfilled: Promise<{ data: R }>;
+    }
+  ) => Promise<void> | void;
+
+
   /**
    * Endpoint-level middleware functions.
    * Execute in addition to global middleware.
@@ -318,6 +334,14 @@ export type QueryKeys<T> = {
   [K in keyof T]: T[K] extends QueryDef<any, any, any> ? K : never
 }[keyof T];
 
+export type UpdateQueryPatchResult = {
+  /**
+   * Reverts the cache back to its previous state.
+   * Useful for rolling back optimistic updates when a request fails.
+   */
+  undo: () => void;
+};
+
 /** @internal Infers result type from a query definition */
 export type InferQueryResult<T> = T extends QueryDef<any, infer Result, any> ? Result : never;
 
@@ -391,8 +415,29 @@ export type HooksFromEndpoints<
       key: K,
       arg: InferQueryArg<T[K]>,
       updater: (data: InferQueryResult<T[K]>) => InferQueryResult<T[K]>
-    ) => void;
+    ) => UpdateQueryPatchResult | undefined;
     
+  /**
+   * Retrieves cached query data for a specific endpoint and arguments.
+   *
+   * Useful when you need to read the current cached state of a query
+   * without triggering a new request.
+   *
+   * @template K - The endpoint key
+   * @param key - The endpoint name (e.g., 'getUser', 'getPosts')
+   * @param arg - The arguments used when calling the endpoint
+   * @returns The cached query data if available, otherwise `undefined`
+   *
+   * @example
+   * ```typescript
+   * const user = api.utils.getApiDraftData('getUser', { id: 1 });
+   *
+   * if (user) {
+   *   console.log(user.name);
+   * }
+   * ```
+   */
+    getApiDraftData: <K extends QueryKeys<T>> (key: K,arg: InferQueryArg<T[K]>) => InferQueryResult<T[K]> | undefined
     /**
      * Invalidate cache tags to trigger refetches of affected queries.
      * Supports both string tags and object tags with IDs.
@@ -440,7 +485,7 @@ export type HooksFromEndpoints<
      * api.utils.refetchQuery('getUser', {id: 1});
      * ```
      */
-    refetchQuery<K extends QueryKeys<T>>(key: K, arg: InferQueryArg<T[K]>): void
+    refetchQuery<K extends QueryKeys<T>>(key: K, arg: InferQueryArg<T[K]>): void;
   };
 };
 
@@ -493,9 +538,10 @@ export type BuilderType<TagTypes extends readonly string[] = readonly []> = {
    * @param config - Configuration including query function and options
    * @returns Mutation endpoint definition
    */
+  // TODO
   mutation<Result, Arg = void>(
     config: {
-      query?: (arg: Arg) => QueryFnObj
+      query?: (arg: Arg) => QueryFnObj | string
     } & ApiOptionMutation<Arg, Result>
   ):MutationDef<Arg, Result, TagTypes>;
 };

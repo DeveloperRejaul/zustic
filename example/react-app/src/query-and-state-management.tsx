@@ -1,8 +1,5 @@
-import { useEffect } from 'react'
 import './App.css'
-import { create } from 'zustic'
 import { createApi } from 'zustic/query'
-import { produce } from 'immer'
 
 // Type definitions for API response
 interface User {
@@ -13,43 +10,6 @@ interface User {
   phone: string
   website: string
 }
-
-// ============ STATE MANAGEMENT ============
-
-type CounterState = {
-  count: number
-  inc: () => void
-  dec: () => void
-}
-
-// Create a simple counter store using Zustic
-const useCounter = create<CounterState>((set, get) => ({
-  count: 0,
-  inc: () => set(() => ({ count: get().count + 1 })),
-  dec: () => set(() => ({ count: get().count - 1 }))
-}))
-
-const immerMiddleware = (set: any, get: any) => (next: any) => (partial: any) => {
-  if (typeof partial === 'function') {
-    next(produce(get(), partial))
-    return
-  }
-   next(partial)
-}
-
-
-const useUserStore = create<{ data: User[] }>((set) => ({
-  data: [],
-  setUsers: (data: User[]) => set({ data }),
-  updateUser: (id:number) => {
-    set((state) => {
-      state.data[id].name = 'Updated Name'
-      return state
-    })
-  }
-}), [immerMiddleware])
-
-// ============ API QUERIES & MUTATIONS ============
 
 // Create an API with queries and mutations
 const api = createApi({
@@ -84,15 +44,6 @@ const api = createApi({
        return res.map(user => ({ type: 'users', id: user.id }))
       },
     }),
-    getUser: builder.query<User[], { page: number; limit: number }>({
-      query: ({ page, limit }) => ({
-        method: 'GET',
-        url: `/users?_page=${page}&_limit=${limit}`
-      }),
-      providesTags: ()=>{
-        return ['users']
-      },
-    }),
     // Mutation to create a post
     createPost: builder.mutation<
       { id: number; title: string },
@@ -111,29 +62,46 @@ const api = createApi({
         ...body,
         userId: 1
       }),
-      onSuccess: () => {
-        api.utils.invalidateTags(['users'])
+     async onQueryStarted(_arg, {queryFulfilled}) {
+        console.log("call onQueryStarted");
+       const f1 = api.utils.updateQueryData('getUsers', { page: 1, limit: 10 }, (draft) => {
+
+            const data = [...draft, {
+                email:"rezaulkarim@gmail.com",
+                id:12341,
+                name:"Rezaul ",
+                phone:"weerwer",
+                username:"werwer",
+                website:"aedfwerw"
+            }]
+            return data
+        })
+        try {
+        await queryFulfilled
+        throw new Error('faild')
+          
+        } catch (error) {
+            console.log(error);
+            f1?.undo()
+        }
+        
       },
-    })
+    }),
   })
 })
 
 // ============ DESTRUCTURE HOOKS FROM API ============
 
 // Destructure hooks directly from the API object
-const { useGetUsersQuery, useCreatePostMutation, useGetUserQuery } = api
+const { useGetUsersQuery, useCreatePostMutation } = api
 
 
 
 
 function QueryAndStateManagement() {
-  // Use the counter store
-  const { count, inc, dec } = useCounter()
-  const { data, setUsers , updateUser} = useUserStore()
 
   // Use the API queries and mutations
-  const { data: users, isLoading,isSuccess } = useGetUsersQuery({ page: 1, limit: 10 })
-  const { data: user } = useGetUserQuery({ page: 1, limit: 10 })
+  const { data: users} = useGetUsersQuery({ page: 1, limit: 10 })
   const [createPost, res] = useCreatePostMutation()
 
   const handleCreatePost = () => {
@@ -143,32 +111,11 @@ function QueryAndStateManagement() {
     })
   }
 
-  useEffect(()=>{
-    if(users && !isLoading && isSuccess) {
-      setUsers(users)
-    }
-  },[users])
 
-
-console.log(data);
-
-  
   
 
   return (
     <div className="container">
-      <h1 onClick={() => updateUser(1)}>Zustic Example</h1>
-
-      {/* Counter Section */}
-      <section>
-        <h2>Counter (State Management)</h2>
-        <p>Count: {count}</p>
-        <div className="button-group">
-          <button onClick={inc}>Increment</button>
-          <button onClick={dec}>Decrement</button>
-        </div>
-      </section>
-
       {/* Users List Section */}
       <section>
         <h2>Users (Queries)</h2>
@@ -197,5 +144,4 @@ console.log(data);
 }
 
 export default QueryAndStateManagement
-
 
