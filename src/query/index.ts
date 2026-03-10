@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, QueryHookOption, QueryKeys, QueryStore } from "./types";
+import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, QueryHookOption, QueryKeys, QueryStore, UpdateQueryPatchResult } from "./types";
 import {create} from '../core';
 import { queryFn } from "./query";
 import { capitalize, createCacheKey, tagMatches } from "./utils";
@@ -240,11 +240,45 @@ function createApi<
    * }));
    * ```
    */
-  function updateQueryData <K extends QueryKeys<T>>(key: K,  arg: InferQueryArg<T[K]>, updater: (data: InferQueryResult<T[K]>) => InferQueryResult<T[K]>) {
+  function updateQueryData <K extends QueryKeys<T>>(key: K,  arg: InferQueryArg<T[K]>, updater: (data: InferQueryResult<T[K]>) => InferQueryResult<T[K]>):UpdateQueryPatchResult | undefined {
     const cacheKey = createCacheKey(key as string, arg);
     const action = actions.get(cacheKey);
     if (!action) return;
-    action.set({data: updater(action.get()?.data)})
+    const prev = action.get()?.data;
+    const next = updater(prev);
+    action.set({ data: next });
+    return {
+      undo() {
+        action.set({ data: prev });
+      }
+    };
+  }
+
+  /**
+ * Retrieves cached query data for a specific endpoint and arguments.
+ *
+ * Useful when you need to read the current cached state of a query
+ * without triggering a new request.
+ *
+ * @template K - The endpoint key
+ * @param key - The endpoint name (e.g., 'getUser', 'getPosts')
+ * @param arg - The arguments used when calling the endpoint
+ * @returns The cached query data if available, otherwise `undefined`
+ *
+ * @example
+ * ```typescript
+ * const user = api.utils.getApiDraftData('getUser', { id: 1 });
+ *
+ * if (user) {
+ *   console.log(user.name);
+ * }
+ * ```
+ */
+  function getApiDraftData <K extends QueryKeys<T>> (key: K,arg: InferQueryArg<T[K]>):InferQueryResult<T[K]> | undefined{
+    const cacheKey = createCacheKey(key as string, arg);
+    const action = actions.get(cacheKey);
+    if (!action) return;
+    return action.get()?.data
   }
 
   /**
@@ -334,42 +368,42 @@ function createApi<
     action.get()?.reFetch?.()
   }
 
-  /**
-   * Dynamically inject new endpoints into the API after creation.
-   * 
-   * Useful for code-splitting, lazy-loading endpoints, or building modular APIs.
-   * 
-   * @param config - Configuration with endpoints to inject
-   * 
-   * @example
-   * ```typescript
-   * const api = createApi({...});
-   * 
-   * // Later, inject more endpoints
-   * api.injectEndpoints({
-   *   endpoints: (builder) => ({
-   *     getProfile: builder.query({
-   *       query: () => '/profile',
-   *       providesTags: ['profile']
-   *     })
-   *   })
-   * });
-   * ```
-   */
-  function injectEndpoints(config: {endpoints: (builder: BuilderType<TagTypes>) => Partial<T>}): void {
-    const newEndpoints = config.endpoints(builder);
+  // /**
+  //  * Dynamically inject new endpoints into the API after creation.
+  //  * 
+  //  * Useful for code-splitting, lazy-loading endpoints, or building modular APIs.
+  //  * 
+  //  * @param config - Configuration with endpoints to inject
+  //  * 
+  //  * @example
+  //  * ```typescript
+  //  * const api = createApi({...});
+  //  * 
+  //  * // Later, inject more endpoints
+  //  * api.injectEndpoints({
+  //  *   endpoints: (builder) => ({
+  //  *     getProfile: builder.query({
+  //  *       query: () => '/profile',
+  //  *       providesTags: ['profile']
+  //  *     })
+  //  *   })
+  //  * });
+  //  * ```
+  //  */
+  // function injectEndpoints(config: {endpoints: (builder: BuilderType<TagTypes>) => Partial<T>}): void {
+  //   const newEndpoints = config.endpoints(builder);
 
-    for (const key in newEndpoints) {
-      const def = newEndpoints[key as keyof typeof newEndpoints] as any;
-      const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
+  //   for (const key in newEndpoints) {
+  //     const def = newEndpoints[key as keyof typeof newEndpoints] as any;
+  //     const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
       
-      // Use the same helper function to avoid code duplication
-      hooks[name] = createEndpointHook(key, def);
+  //     // Use the same helper function to avoid code duplication
+  //     hooks[name] = createEndpointHook(key, def);
 
-      // Add to defs so it's not injected again
-      (defs as any)[key] = def;
-    }
-  }
+  //     // Add to defs so it's not injected again
+  //     (defs as any)[key] = def;
+  //   }
+  // }
 
 
   return {
@@ -378,10 +412,11 @@ function createApi<
       updateQueryData,
       invalidateTags,
       resetApiState,
-      refetchQuery
+      refetchQuery,
+      getApiDraftData
     },
-    injectEndpoints
-  } as HooksFromEndpoints<T, TagTypes> & { injectEndpoints: typeof injectEndpoints } ;
+    // injectEndpoints
+  } as HooksFromEndpoints<T, TagTypes>  //& { injectEndpoints: typeof injectEndpoints } ;
 }
 
 export {
