@@ -16,6 +16,11 @@
       "types": "./dist/query/index.d.ts",
       "import": "./dist/query/index.mjs",
       "require": "./dist/query/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n/index.d.ts",
+      "import": "./dist/i18n/index.mjs",
+      "require": "./dist/i18n/index.js"
     }
   },
   "directories": {
