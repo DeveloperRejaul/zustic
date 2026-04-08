@@ -1,7 +1,7 @@
 
 export interface I18nParams<T, L> {
   initialLan: L;
-  resorce: (lan: L) => Promise<T> | T;
+  resource: (lan: L) => Promise<T> | T;
 }
 
 /**
@@ -31,4 +31,8 @@ export type TranslationKey<T> = NestedKeys<T> & string;
 export type StoreType<T, L> = {
     lan: L
     update: (lan: L) => void
+    data: T | null,
+    isUpdating: boolean,
+    isInitialLoading: boolean,
+    load(lan: L): Promise<void>
 }

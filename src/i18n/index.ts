@@ -1,44 +1,73 @@
 'use client';
 
 import { create as c } from 'core';
+import { useEffect } from 'react';
 import type { I18nParams, StoreType, TranslationKey } from './types';
 
 function create<T = any, L = any>(params: I18nParams<T, L>) {
-  const { resorce, initialLan } = params;
-  let data = null as T
+  const { resource, initialLan } = params;
 
-  const useStore = c<StoreType<T,L>>((set) => ({
+  let requestId = 0; 
+
+  const useStore = c<StoreType<T, L>>((set, get) => ({
     lan: initialLan,
-    update: (lan: L) => {
-       set({lan})
+    data: null as T | null,
+    isUpdating: false,
+    isInitialLoading: true,
+
+    async load(lan: L) {
+      const id = ++requestId;
+
+      const isFirstLoad = get().data === null;
+
+      set({
+        isUpdating: !isFirstLoad,
+        isInitialLoading: isFirstLoad,
+      });
+
+      const result = await Promise.resolve(resource(lan));
+
+      // ignore outdated requests
+      if (id !== requestId) return;
+
+      set({
+        data: result,
+        isUpdating: false,
+        isInitialLoading: false,
+      });
+    },
+
+    update(lan: L) {
+      set({ lan });
     },
   }));
 
-  // Initially load translations
-  (async () => {
-    data = await Promise.resolve(resorce(initialLan));
-  })();
-
   return function useTranslation() {
-    const { lan, update } = useStore();
+    const { lan, data, update, isUpdating, isInitialLoading , load} = useStore();
+
+    // single source of truth
+    useEffect(() => {
+      load(lan);
+    }, [lan]);
 
     function t(key: TranslationKey<T>): string {
-      if (!data) return key;
-      console.log('call');
-      console.log(key);
-      console.log(data);
+      if (!data || isInitialLoading) return "";
 
-      return key.split('.').reduce((acc: any, part) => acc?.[part], data);
+      return (
+        key.split('.').reduce((acc: any, part) => acc?.[part], data) ?? key
+      );
     }
 
     function updateTranslation(lang: L) {
-       update(lang);
+      update(lang);
     }
 
     return {
       t,
       lan,
       updateTranslation,
+      isUpdating,
+      isInitialLoading,
     };
   };
 }
