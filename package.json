@@ -21,6 +21,11 @@
       "types": "./dist/i18n/index.d.ts",
       "import": "./dist/i18n/index.mjs",
       "require": "./dist/i18n/index.js"
+    },
+    "./hook-form": {
+      "types": "./dist/hook-form/index.d.ts",
+      "import": "./dist/hook-form/index.mjs",
+      "require": "./dist/hook-form/index.js"
     }
   },
   "directories": {
