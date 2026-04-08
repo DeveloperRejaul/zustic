@@ -4,6 +4,7 @@ export default defineConfig({
     entry: [
         'src/index.ts',
         'src/query/index.ts',
+        'src/i18n/index.ts',
     ],
     format: ['esm', 'cjs'],
     dts: true,

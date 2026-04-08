@@ -1,6 +1,6 @@
 {
   "name": "zustic",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "A fast, minimal state management solution for React ecosystems. Works seamlessly with React, Next.js, and React Native, offering predictable state updates with a tiny footprint.",
   "scripts": {
     "build": "tsup",
@@ -16,6 +16,11 @@
       "types": "./dist/query/index.d.ts",
       "import": "./dist/query/index.mjs",
       "require": "./dist/query/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n/index.d.ts",
+      "import": "./dist/i18n/index.mjs",
+      "require": "./dist/i18n/index.js"
     }
   },
   "directories": {
