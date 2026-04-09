@@ -189,7 +189,7 @@ export function normalizeDefaultValues<T>(defaultValues: any) {
 export function parseValue<T>(value: any, defaultValue: T): T {
   if (typeof defaultValue === "number") {
     const parsed = Number(value);
-    return (!isNaN(parsed) ? 0 : parsed) as unknown as T;
+    return (isNaN(parsed) ? 0 : parsed) as unknown as T;
   }
 
   if (typeof defaultValue === "boolean") {
