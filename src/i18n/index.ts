@@ -2,9 +2,9 @@
 
 import { create as c } from 'core';
 import { useEffect } from 'react';
-import type { I18nParams, StoreType, TranslationKey } from './types';
+import type { I18nParams, StoreType, TranslationKey } from './type';
 
-function create<T = any, L = any>(params: I18nParams<T, L>) {
+function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
   const { resource, initialLan } = params;
 
   let requestId = 0; 
@@ -72,4 +72,6 @@ function create<T = any, L = any>(params: I18nParams<T, L>) {
   };
 }
 
-export { create };
+export { 
+  createI18n
+};

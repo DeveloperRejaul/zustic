@@ -1,6 +1,6 @@
 'use client';
 
-import { create } from 'zustic/i18n';
+import { createI18n } from 'zustic/i18n';
 
 type DataType = {
   name: string;
@@ -19,7 +19,7 @@ type DataType = {
   };
 };
 
-const useTranslate = create<DataType, 'bn' | 'en'>({
+const useTranslate = createI18n<DataType, 'bn' | 'en'>({
   initialLan: 'bn',
 
   async resource(lan) {

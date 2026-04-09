@@ -1204,6 +1204,11 @@ prelude-ls@^1.2.1:
   resolved "https://registry.npmjs.org/prelude-ls/-/prelude-ls-1.2.1.tgz"
   integrity sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
 
+property-expr@^2.0.5:
+  version "2.0.6"
+  resolved "https://registry.npmjs.org/property-expr/-/property-expr-2.0.6.tgz"
+  integrity sha512-SVtmxhRE/CGkn3eZY1T6pC8Nln6Fr/lu1mKSgRud0eC73whjGfoAogbn78LkD8aFL0zz3bAFerKSnOl7NlErBA==
+
 punycode@^2.1.0:
   version "2.3.1"
   resolved "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz"
@@ -1308,6 +1313,11 @@ tapable@^2.3.0:
   resolved "https://registry.npmjs.org/tapable/-/tapable-2.3.0.tgz"
   integrity sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==
 
+tiny-case@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.npmjs.org/tiny-case/-/tiny-case-1.0.3.tgz"
+  integrity sha512-Eet/eeMhkO6TX8mnUteS9zgPbUMQa4I6Kkp5ORiBD5476/m+PIRiumP5tmh5ioJpH7k51Kehawy2UDfsnxxY8Q==
+
 tinyglobby@^0.2.15:
   version "0.2.15"
   resolved "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.15.tgz"
@@ -1315,6 +1325,11 @@ tinyglobby@^0.2.15:
   dependencies:
     fdir "^6.5.0"
     picomatch "^4.0.3"
+
+toposort@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.npmjs.org/toposort/-/toposort-2.0.2.tgz"
+  integrity sha512-0a5EOkAUp8D4moMi2W8ZF8jcga7BgZd91O/yabJCFY8az+XSzeGyTKs0Aoo897iV1Nj6guFq8orWDS96z91oGg==
 
 ts-api-utils@^2.4.0:
   version "2.4.0"
@@ -1332,6 +1347,11 @@ type-check@^0.4.0, type-check@~0.4.0:
   integrity sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==
   dependencies:
     prelude-ls "^1.2.1"
+
+type-fest@^2.19.0:
+  version "2.19.0"
+  resolved "https://registry.npmjs.org/type-fest/-/type-fest-2.19.0.tgz"
+  integrity sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==
 
 typescript-eslint@^8.46.4:
   version "8.52.0"
@@ -1405,16 +1425,26 @@ yocto-queue@^0.1.0:
   resolved "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
+yup@^1.7.1:
+  version "1.7.1"
+  resolved "https://registry.npmjs.org/yup/-/yup-1.7.1.tgz"
+  integrity sha512-GKHFX2nXul2/4Dtfxhozv701jLQHdf6J34YDh2cEkpqoo8le5Mg6/LrdseVLrFarmFygZTlfIhHx/QKfb/QWXw==
+  dependencies:
+    property-expr "^2.0.5"
+    tiny-case "^1.0.3"
+    toposort "^2.0.2"
+    type-fest "^2.19.0"
+
 "zod-validation-error@^3.5.0 || ^4.0.0":
   version "4.0.2"
   resolved "https://registry.npmjs.org/zod-validation-error/-/zod-validation-error-4.0.2.tgz"
   integrity sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ==
 
-"zod@^3.25.0 || ^4.0.0":
-  version "4.3.5"
-  resolved "https://registry.npmjs.org/zod/-/zod-4.3.5.tgz"
-  integrity sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==
+"zod@^3.25.0 || ^4.0.0", zod@^4.3.6:
+  version "4.3.6"
+  resolved "https://registry.npmjs.org/zod/-/zod-4.3.6.tgz"
+  integrity sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==
 
 "zustic@file:../..":
-  version "1.0.9"
+  version "1.1.0"
   resolved "file:../.."
