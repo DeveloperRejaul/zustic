@@ -2,7 +2,7 @@
 
 import { create as c } from 'core';
 import { useEffect } from 'react';
-import type { I18nParams, StoreType, TranslationKey } from './types';
+import type { I18nParams, StoreType, TranslationKey } from './type';
 
 function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
   const { resource, initialLan } = params;

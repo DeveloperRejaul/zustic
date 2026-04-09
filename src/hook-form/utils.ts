@@ -1,4 +1,4 @@
-import type { NumberRule, RequiredRule } from "./types";
+import type { NumberRule, RequiredRule } from "./type";
 
 /**
  * Capitalizes the first character of a string.
@@ -30,6 +30,7 @@ export function capitalize(str: string): string {
  * // { value: false, message: 'Email is required' }
  */
 export function getRequired(rule: RequiredRule | undefined, field: string) {
+
   if (!rule) {
     return { 
       value: false,
@@ -40,7 +41,7 @@ export function getRequired(rule: RequiredRule | undefined, field: string) {
   if (typeof rule === "boolean") {
     return {
       value: rule,
-      message: rule ? "" : `${capitalize(field)} is required`,
+      message: rule ? `${capitalize(field)} is required`: "",
     };
   }
 
@@ -91,9 +92,9 @@ export function getNumberRule(rule: NumberRule | undefined, type: "min" | "max")
 export function getValues<T>(state: any): T {
   const result = {} as T;
 
-  Object.keys(state).forEach((key) => {
+  Object.keys(state || {}).forEach((key) => {
     const item = state[key];
-    if (item && typeof item === "object" && "value" in item) {
+    if (typeof item === "object" && "value" in item) {
       result[key as keyof T] = item.value;
     }
   });
@@ -121,7 +122,7 @@ export const zodResolver = (schema: any) => (values: any) => {
 
   const errors: Record<string, string> = {};
 
-  result.error.errors.forEach((err: any) => {
+  result.error.issues.forEach((err: any) => {
     const key = err.path[0];
     errors[key] = err.message;
   });
@@ -153,3 +154,48 @@ export const yupResolver = (schema: any) => async (values: any) => {
     return { errors };
   }
 };
+
+
+export function normalizeDefaultValues<T>(defaultValues: any) {
+  const result: any = {};
+
+  Object.keys(defaultValues).forEach((key) => {
+    const value = defaultValues[key];
+
+    // already Field object
+    if (value && typeof value === "object" && "value" in value) {
+      result[key] = {
+        error: "",
+        ...value,
+      };
+    } else {
+      // primitive → convert to Field
+      result[key] = {
+        value,
+        error: "",
+      };
+    }
+  });
+
+  return result as Record<keyof T, any>;
+}
+
+
+/**
+ * Converts a string value to the expected type based on T
+ * @param value - The raw input (usually string from input field)
+ * @param defaultValue - The default value to infer the type
+ */
+export function parseValue<T>(value: any, defaultValue: T): T {
+  if (typeof defaultValue === "number") {
+    const parsed = Number(value);
+    return (!isNaN(parsed) ? 0 : parsed) as unknown as T;
+  }
+
+  if (typeof defaultValue === "boolean") {
+    return Boolean(value) as unknown as T;
+  }
+
+  // fallback: string or other types
+  return value as T;
+}

@@ -1,19 +1,26 @@
 import { create } from "core";
-import { getNumberRule, getRequired, getValues } from "./utils";
-import type { HookFormParams } from "./types";
-
+import { getNumberRule, getRequired, getValues, normalizeDefaultValues, parseValue, yupResolver, zodResolver } from "./utils";
+import type { ControllerProps, HandleSubmitType, HookFormParams } from "./type";
 
 
 function createForm<T>(params:HookFormParams<T>) {
     const {defaultValues,resolver} = params
-
+    const fd:any = normalizeDefaultValues(defaultValues)
     const useForm = create<any>((set, get) => ({
-        ...defaultValues,
-        setFieldValue:(field:any, value:any) => set((state) => ({[field]: {...state[field],value}})),
-        validateField: (field:any) => set((state)=>{
-            const fieldState = state[field];
-            let error: string | null = null;
-            const value = fieldState.value;
+        ...fd,
+        setFieldValue:(field:any, value:any) => {
+            const fieldState = get()[field];
+            set({
+                [field]: {
+                    ...fieldState,
+                    value: parseValue<T>(value, fd[field]?.value)
+                }
+            })
+        },
+        defaultValidateField: (field:any) => {
+            const fieldState = get()[field];
+            let error: string = "";
+            const value = parseValue<T>(fieldState.value, fieldState[field]?.value);
 
             const required = getRequired(fieldState.required, field);
             const min = getNumberRule(fieldState.min, "min");
@@ -22,8 +29,7 @@ function createForm<T>(params:HookFormParams<T>) {
             // handle  required
             if (required.value && !value) {
                 error = required.message;
-            }
-
+            }            
             // pattern
             else if(typeof value === "string" && fieldState.pattern && !fieldState.pattern.value.test(value)){
                 error = fieldState.pattern.message;
@@ -38,68 +44,89 @@ function createForm<T>(params:HookFormParams<T>) {
             else if (max && ((typeof value === "string" && value.length > max.value) || (typeof value === "number" && value > max.value))) {
                 error = max.message;
             }
+            set({
+                [field]: {
+                    ...fieldState,
+                    error,
+                }
+            })
 
-            return {
+            return error
+        },
+        resolverValidate: async (field:any) => {
+            if(!resolver) return
+
+            const state = get()
+            const fieldState = state[field];
+            let error: string = "";
+            const values = getValues<T>(state);
+            const result = await resolver(values);
+            if (result?.errors) {
+                const err = (result.errors as any)[field];
+                if (err) error = err;
+            }
+
+            set({
                 [field]: {
                     ...fieldState,
                     error,
                 },
-            };
-
-        }),
-        handleSubmit: (cb: (data:T)=>void) => (e:React.FormEvent<HTMLFormElement>) => {
+            });
+            return error
+        },
+        handleSubmit: (cb: (data:T)=>void) => async (e:React.FormEvent<HTMLFormElement>) => {
             e.preventDefault();
 
-            const state = get();
-
             let hasError = false;
-
-            //get all values
+            const state = get();
             const values = getValues<T>(state);
-
-            // 1. resolver validation (Zod/Yup)
-            if (resolver) {
-                const result = resolver(values);
-
-                if (result?.errors) {
-                hasError = true;
-
-                set((state: any) => {
-                    const updated: any = {};
-
-                    Object.keys(result.errors!).forEach((key) => {
-                        updated[key] = {
-                            ...state[key],
-                            error: result.errors![key as keyof T],
-                        };
-                    });
-
-                    return updated;
-                });
-                }
-
-                if (!hasError) cb(values);
-
-                return;
-            }
-
+            const keys = (Object.keys(values as any) as Array<keyof T>)
+            
             // validate all fields dynamically
-            (Object.keys(values as any) as Array<keyof T>).forEach((key) => {
-                state.validateField(key);
-                const fieldState = state[key];
-                if (fieldState.error) hasError = true
-            });
-
-            // submit only if no errors
+            if (resolver) {
+                for (const key of keys) {
+                    const err = await state.resolverValidate(key);
+                    if (err) hasError = true
+                }
+                if (!hasError)  cb(values);
+                return
+            }
+            
+            for (const key of keys) {
+                const err = await state.defaultValidateField(key);
+                if (err) hasError = true
+            }
             if (!hasError)  cb(values);
         }
     }))
+    
+    function Controller({ field, render }: ControllerProps<T>) {
+      const state = useForm()
+      const value = state[field].value
+      const error = state[field].error
+      const setFieldValue = state.setFieldValue
+      const defaultValidateField = state.defaultValidateField
+      const resolverValidate = state.resolverValidate
+    
+      const handleChange = async (value:string) => {
+        setFieldValue(field, value)
+        if(resolver){
+            await resolverValidate(field)
+            return
+        }
+        defaultValidateField(field)
+      }
+
+      const element = render(value, error, handleChange)
+      return element
+    }
 
     return () => {
          const handleSubmit = useForm((s)=>s.handleSubmit)
         
         return {
-            handleSubmit: handleSubmit as (cb: (data: T) => void) => (e: React.FormEvent<HTMLFormElement>) => void,
+            handleSubmit: handleSubmit as HandleSubmitType<T>,
+            Controller,
         }
     }
 }
@@ -107,20 +134,8 @@ function createForm<T>(params:HookFormParams<T>) {
 
 
 
-// type FormType = {
-//     email: string
-// }
-
-// const useForm = createForm<FormType>({
-//     defaultValues:{
-//       email:""
-//     }
-// })
-
-// const {handleSubmit} = useForm()
-
-// const onSubmit = (data:FormType) => {
-//     console.log('Form submitted:', data);
-//     // Send to API
-//   }
-// handleSubmit(onSubmit)
+export {
+    createForm,
+    yupResolver,
+    zodResolver
+}
