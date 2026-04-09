@@ -4,7 +4,8 @@ import * as yup from "yup";
 import { createForm, zodResolver, yupResolver } from "zustic/hook-form";
 
 type FormType = {
-  email: number;
+  email: string;
+  name: string;
 };
 
 // ✅ define schema
@@ -20,20 +21,14 @@ const schemaYup = yup.object({
 const useForm = createForm<FormType>({
   defaultValues: {
     email: {
-        value: 0,
-        required: true,
-        pattern:{
-            value: /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
-            message: "Invalid email address",
-        }
+        value: '',
     },
-    
+    name: ""
   },
 });
 
 export default function HookForm() {
-  const { handleSubmit, Controller } = useForm();
-
+  const { handleSubmit, Controller ,reset} = useForm();
   
   return (
     <form
@@ -43,7 +38,21 @@ export default function HookForm() {
     >
       <Controller
         field="email"
-        render={(value, error, onChange) => (
+        render={({onChange, value, error}) => (
+          <div>
+            <input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Email"
+            />
+            {error && <p style={{ color: "red" }}>{error}</p>}
+          </div>
+        )}
+      />
+      
+      <Controller
+        field="name"
+        render={({onChange, value, error}) => (
           <div>
             <input
               value={value}
@@ -55,6 +64,7 @@ export default function HookForm() {
         )}
       />
 
+      <button type="button" onClick={reset}>Reset</button>
       <button type="submit">Submit</button>
     </form>
   );
