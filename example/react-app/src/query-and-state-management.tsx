@@ -15,6 +15,7 @@ interface User {
 const api = createApi({
   baseQuery: async (params) => {
     try {
+      
       const endpoint = typeof params === 'string' ? params : params.url
       const method = typeof params === 'string' ? 'GET' : params.method
       const headers = typeof params !== 'string' ? params?.headers : {}
@@ -58,14 +59,16 @@ const api = createApi({
         }
       }),
 
+      transformHeader(header) {
+        console.log(header);
+        return header;
+      },
       transformBody: (body) => ({
         ...body,
         userId: 1
       }),
      async onQueryStarted(_arg, {queryFulfilled}) {
-        console.log("call onQueryStarted");
        const f1 = api.utils.updateQueryData('getUsers', { page: 1, limit: 10 }, (draft) => {
-
             const data = [...draft, {
                 email:"rezaulkarim@gmail.com",
                 id:12341,
@@ -78,8 +81,6 @@ const api = createApi({
         })
         try {
         await queryFulfilled
-        throw new Error('faild')
-          
         } catch (error) {
             console.log(error);
             f1?.undo()
@@ -93,7 +94,11 @@ const api = createApi({
 // ============ DESTRUCTURE HOOKS FROM API ============
 
 // Destructure hooks directly from the API object
-const { useGetUsersQuery, useCreatePostMutation } = api
+const {
+  useGetUsersQuery,
+  useCreatePostMutation,
+  useLazyGetUsersQuery
+} = api
 
 
 
@@ -101,7 +106,8 @@ const { useGetUsersQuery, useCreatePostMutation } = api
 function QueryAndStateManagement() {
 
   // Use the API queries and mutations
-  const { data: users} = useGetUsersQuery({ page: 1, limit: 10 })
+  // const { data: users} =useGetUsersQuery({page: 1, limit: 20})
+  const[getUser, { data: users}] = useLazyGetUsersQuery()
   const [createPost, res] = useCreatePostMutation()
 
   const handleCreatePost = () => {
@@ -118,10 +124,12 @@ function QueryAndStateManagement() {
     <div className="container">
       {/* Users List Section */}
       <section>
-        <h2>Users (Queries)</h2>
+        <h2 onClick={()=>{
+          getUser({page: 1, limit: 20})
+        }}>Users (Queries)</h2>
         {users ? (
           <ul>
-            {users.map((user) => (
+            {users?.map((user) => (
               <li key={user.id}>
                 <strong>{user.name}</strong> - {user.email}
               </li>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, QueryHookOption, QueryKeys, QueryStore, UpdateQueryPatchResult } from "./types";
 import {create} from '../core';
 import { queryFn } from "./query";
@@ -91,9 +91,18 @@ function createApi<
   const createEndpointHook = (key: string, def: any) => {
     const pMiddlewares = (def.plugins || []).filter((p: any) => p?.middleware && typeof p.middleware === 'function').map((p: any) => p.middleware) as ApiMiddleware[]
 
+    const initialState = {
+      data: null,
+      isLoading: false,
+      isError: false,
+      isSuccess: false,
+      error: null,
+      reFetch: () => {},
+      query: () => {}
+    }
+
     if (def.type === 'query') {
-      return (arg: any, option?: QueryHookOption) => {
-        const cacheKey = createCacheKey(key, arg);
+      const createQueryStore = (cacheKey: string) => {
         if (!stors.has(cacheKey)) {
           const store = create<QueryStore<any>>((set, get) => {
             actions.set(cacheKey, { set, get })
@@ -101,7 +110,6 @@ function createApi<
               data: null,
               isLoading: false,
               isError: false,
-              isFetching: false,
               isSuccess: false,
               error: null,
               arg: null,
@@ -132,8 +140,15 @@ function createApi<
           })
           stors.set(cacheKey, store);
         }
+        return stors.get(cacheKey)!;
+      };
+      
+      /** NORMAL QUERY  */
+      const useQuery = (arg: any, option?: QueryHookOption) => {
+        const cacheKey = createCacheKey(key, arg);
+        const store = createQueryStore(cacheKey);
+
         const { skip } = option || {}
-        const useQueryState = stors.get(cacheKey)!
 
         const {
           query,
@@ -143,12 +158,10 @@ function createApi<
           isSuccess,
           reFetch,
           data
-        } = useQueryState()
+        } = store()
 
         useEffect(() => {
-          if (skip) {
-            return
-          }
+          if (skip) return
           query(arg)
         }, [JSON.stringify(arg || {})])
 
@@ -161,12 +174,58 @@ function createApi<
           reFetch,
         }
       };
+
+      /** LAZY QUERY */
+      const useLazyQuery = () => {
+        const [arg, setArg] = React.useState<any>(undefined);
+        const [isTriggered, setIsTriggered] = React.useState(false);
+
+        const trigger = (newArg: any) => {
+          setArg(newArg);
+          setIsTriggered(true);
+        };
+
+        const cacheKey = isTriggered && arg !== undefined ? createCacheKey(key, arg) : "__lazy__";
+        const store = createQueryStore(cacheKey);
+        const {
+          query,
+          error,
+          isError,
+          isLoading,
+          isSuccess,
+          data,
+          reFetch
+        } = store();
+
+        useEffect(() => {
+          if(!isTriggered) return;
+          query(arg);
+        }, [isTriggered, JSON.stringify(arg), query]);
+
+        return [
+          trigger,
+          {
+            error,
+            isError,
+            isLoading,
+            isSuccess,
+            data,
+            reFetch,
+          }
+        ] as const;
+      };
+
+
+      return {
+        useQuery,
+        useLazyQuery
+      }
     }
 
     if (def.type === 'mutation') {
       let mutationStore: any = null;
 
-      return () => {
+      const useMutation = () => {
         if (!mutationStore) {
           mutationStore = create<QueryStore<any>>((set, get) => {
             return {
@@ -212,13 +271,26 @@ function createApi<
           }
         ] as const;
       };
+      return {
+        useMutation
+      }
     }
   };
 
   for (const key in defs) {
     const def = defs[key];
-    const name = `use${capitalize(key)}` + (def.type === 'query' ? 'Query' : 'Mutation');
-    hooks[name] = createEndpointHook(key, def);
+    const baseName = capitalize(key);
+
+    const result = createEndpointHook(key, def);
+
+    if (def.type === 'query') {
+      hooks[`use${baseName}Query`] = result?.useQuery;
+      hooks[`useLazy${baseName}Query`] = result?.useLazyQuery;
+    }
+
+    if (def.type === 'mutation') {
+      hooks[`use${baseName}Mutation`] = result?.useMutation;
+    }
   }
 
   /**

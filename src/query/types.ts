@@ -122,7 +122,6 @@ type ApiOptionBase<Arg, R> = {
    * `queryFulfilled` resolves when the request succeeds
    * and rejects when the request fails.
    */
-  //TODO
   onQueryStarted?: (
     arg: Arg,
     api: {
@@ -384,21 +383,52 @@ export type InferQueryResult<T> = T extends QueryDef<any, infer Result, any> ? R
 export type HooksFromEndpoints<
   T extends EndpointsMap<TagTypes>, 
   TagTypes extends readonly string[] = readonly []
-> = {
-  [K in keyof T as 
-    T[K] extends { type: 'query' }
-      ? `use${Capitalize<string & K>}Query`
-      : `use${Capitalize<string & K>}Mutation`
+> = 
+/** Normal query hooks */
+{
+  [
+    K in keyof T as 
+      T[K] extends { type: 'query' } 
+        ? `use${Capitalize<string & K>}Query`
+        : never
   ]:
     T[K] extends QueryDef<infer Arg, infer Result, any>
       ? (arg: Arg, option?: QueryHookOption) => MainQueryHookResult<Result>
-      : T[K] extends MutationDef<infer Arg, infer Result, any>
-        ? () => readonly [
-            (arg: Arg) => Promise<Result>,
-            MainMutationState<Result>
-          ]
-        : never;
-} & {
+      : never;
+}
+
+/** Lazy query hooks */
+& {
+  [
+    K in keyof T as 
+      T[K] extends { type: 'query' } 
+        ? `useLazy${Capitalize<string & K>}Query`
+        : never
+  ]:
+    T[K] extends QueryDef<infer Arg, infer Result, any>
+      ? () => readonly [
+          (arg: Arg) => void,
+          MainQueryHookResult<Result>
+        ]
+      : never;
+}
+
+/** Mutation hooks */
+& {
+  [
+    K in keyof T as 
+      T[K] extends { type: 'mutation' } 
+        ? `use${Capitalize<string & K>}Mutation`
+        : never
+  ]:
+    T[K] extends MutationDef<infer Arg, infer Result, any>
+      ? () => readonly [
+          (arg: Arg) => Promise<Result>,
+          MainMutationState<Result>
+        ]
+      : never;
+}
+& {
   /** Utilities for cache management and manual updates */
   utils: {
     /**

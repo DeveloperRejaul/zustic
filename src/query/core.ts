@@ -50,31 +50,31 @@ export const coreFn = async (
     let data=null;
     let error=null;
 
-    // impliment cashing macanisom
+    // implement cashing macanisom
     const cashTime = get().cashExp;
     const now = Date.now()
-    let isCashAvilable = false;
+    let isCashAvailable = false;
     if(isRefetch){
-      isCashAvilable = false 
+      isCashAvailable = false 
     }else if (JSON.stringify(get().arg || {}) !== JSON.stringify(arg || {})) {
-      isCashAvilable= false
+      isCashAvailable= false
     }else{
-      isCashAvilable = cashTime>= now
+      isCashAvailable = cashTime>= now
     }
 
 
-    if(isCashAvilable) {
+    if(isCashAvailable) {
       data = get().data;
     }
 
-    if(!isCashAvilable && def?.queryFnc) {
+    if(!isCashAvailable && def?.queryFnc) {
       set({isFetching: true});
       const {data:d, error:e} = await def?.queryFnc?.(arg, baseQuery)
       if(d) data = d
       if(e) error = e
     }else{
       const params = def.queryFn(arg);
-    
+      
       // handle header transform
       if(def?.transformHeader){
         params['headers'] = await def?.transformHeader?.(params?.headers)
@@ -85,7 +85,7 @@ export const coreFn = async (
         params['body'] = await def?.transformBody?.(params?.body)
       }
 
-      if(!isCashAvilable) {
+      if(!isCashAvailable) {
         set({isFetching: true});
         const {data:d, error:e} = await baseQuery(params)
         if(d) data = d
@@ -97,7 +97,7 @@ export const coreFn = async (
     if(data){
       // handle transform response
       if(def?.transformResponse) {
-        data = await def.transformResponse?.(data,get().data, arg)
+        data = await def.transformResponse?.(data,get()?.data, arg)
       }
       if(def?.onSuccess) {
         await def.onSuccess?.(data, arg)
@@ -131,12 +131,12 @@ export const coreFn = async (
         isSuccess: true,
         isLoading: false,
         isFetching: false,
-        cashExp: isCashAvilable ? cashTime : (Date.now() + cashTimeout),
+        cashExp: isCashAvailable ? cashTime : (Date.now() + cashTimeout),
         arg,
         tags: tags,
       });
 
-      // henadle onQuery resolve
+      // handle onQuery resolve
       resolveQuery?.({ data });
 
       return {data}
@@ -150,7 +150,7 @@ export const coreFn = async (
       arg,
     });
 
-    // henadle onQuery reject
+    // handle onQuery reject
     rejectQuery?.(error);
     return {error}
   } catch(e) {
@@ -162,7 +162,7 @@ export const coreFn = async (
       error: e,
       arg,
     });
-    // henadle onQuery reject
+    // handle onQuery reject
     rejectQuery?.(e);
     return{error: e}
   }
