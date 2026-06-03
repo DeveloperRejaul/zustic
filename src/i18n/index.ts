@@ -1,11 +1,23 @@
 'use client';
 
 import { create as c } from 'core';
-import { useEffect } from 'react';
+import { useEffect} from 'react';
 import type { I18nParams, StoreType, TranslationKey } from './type';
+
+interface I18nInstance<T = any, L = any> {
+  t(key: TranslationKey<T>): string
+  lan: L;
+  updateTranslation(lang: L): void
+}
 
 function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
   const { resource, initialLan } = params;
+
+  const i18n = {
+    t: () => "",
+    updateTranslation: () => {},
+    lan: '',
+  } as I18nInstance
 
   let requestId = 0; 
 
@@ -42,25 +54,28 @@ function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
     },
   }));
 
-  return function useTranslation() {
-    const { lan, data, update, isUpdating, isInitialLoading , load} = useStore();
+  function useTranslation() {
+    const {lan, data, update, isUpdating, isInitialLoading , load} = useStore();
 
-    // single source of truth
     useEffect(() => {
       load(lan);
     }, [lan]);
 
     function t(key: TranslationKey<T>): string {
       if (!data || isInitialLoading) return "";
-
-      return (
-        key.split('.').reduce((acc: any, part) => acc?.[part], data) ?? key
-      );
+      return (key.split('.').reduce((acc: any, part) => acc?.[part], data) ?? key) ;
     }
 
     function updateTranslation(lang: L) {
       update(lang);
     }
+
+
+    // sync global object
+    i18n.t = t;
+    i18n.lan = lan;
+    i18n.updateTranslation = updateTranslation;
+
 
     return {
       t,
@@ -70,8 +85,17 @@ function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
       isInitialLoading,
     };
   };
+
+  return {
+    useTranslation,
+    i18n: i18n as I18nInstance<T, L>,
+  }
 }
 
-export { 
-  createI18n
+export{ 
+  createI18n,
 };
+
+
+
+

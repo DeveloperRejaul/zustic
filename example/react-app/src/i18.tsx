@@ -1,6 +1,6 @@
 'use client';
 
-import { createI18n } from 'zustic/i18n';
+import { createI18n} from 'zustic/i18n';
 
 type DataType = {
   name: string;
@@ -19,7 +19,7 @@ type DataType = {
   };
 };
 
-const useTranslate = createI18n<DataType, 'bn' | 'en'>({
+const {useTranslation, i18n} = createI18n<DataType, 'bn' | 'en'>({
   initialLan: 'bn',
 
   async resource(lan) {
@@ -69,7 +69,7 @@ const useTranslate = createI18n<DataType, 'bn' | 'en'>({
 
 
 export default function I18() {
-  const { t, lan, updateTranslation, isInitialLoading, isUpdating } = useTranslate();
+  const {isInitialLoading, isUpdating ,t} = useTranslation();
 
   if (isInitialLoading) {
     return <p>Loading translations...</p>;
@@ -77,11 +77,11 @@ export default function I18() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>🌐 Language: {lan}</h2>
+      <h2>🌐 Language: {i18n.lan}</h2>
 
       {/* Language Switch */}
-      <button onClick={() => updateTranslation('en')}>English</button>
-      <button onClick={() => updateTranslation('bn')}>বাংলা</button>
+      <button onClick={() => i18n.updateTranslation('en')}>English</button>
+      <button onClick={() => i18n.updateTranslation('bn')}>বাংলা</button>
 
       {isUpdating && <p>🔄 Updating...</p>}
 
@@ -99,7 +99,7 @@ export default function I18() {
 
       <h3>📘 Subject</h3>
       <p>Name: {t('school.student.subject.name')}</p>
-      <p>Code: {t('school.student.subject.code')}</p>
+      <p>Code: {i18n.t('school.student.subject.code')}</p>
     </div>
   );
 }

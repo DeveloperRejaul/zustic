@@ -9,6 +9,6 @@ import HookForm from './Hook-form'
 
 createRoot(document.getElementById('root')!).render(
   // <StrictMode>
-    <QueryAndStateManagement />
+    <I18 />
   // </StrictMode>,
 )
