@@ -8,6 +8,7 @@ interface I18nInstance<T = any, L = any> {
   t(key: TranslationKey<T>): string
   lan: L;
   updateTranslation(lang: L): void
+  reload(): Promise<void>
 }
 
 function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
@@ -16,6 +17,7 @@ function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
   const i18n = {
     t: () => "",
     updateTranslation: () => {},
+    reload: async () => {},
     lan: '',
   } as I18nInstance
 
@@ -70,14 +72,19 @@ function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
       update(lang);
     }
 
+    async function reload () {
+      await load(lan)
+    }
 
     // sync global object
     i18n.t = t;
     i18n.lan = lan;
     i18n.updateTranslation = updateTranslation;
+    i18n.reload = reload;
 
 
     return {
+      reload,
       t,
       lan,
       updateTranslation,
