@@ -220,8 +220,8 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
          * @returns All values or specific field value
          * 
          * @example
-         * const allValues = getvalues();  // { email: 'user@example.com', age: 25 }
-         * const email = getvalues('email');  // 'user@example.com'
+         * const allValues = getValues();  // { email: 'user@example.com', age: 25 }
+         * const email = getValues('email');  // 'user@example.com'
          */
         getValues: (key?: keyof T) => {
             if(key){
@@ -530,7 +530,7 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
     return () => {
          const handleSubmit = useForm((s)=>s.handleSubmit)
          const setValue = useForm((s)=>s.setValue)
-         const getvalues = useForm((s)=>s.getvalues)
+         const getValues = useForm((s)=>s.getValues)
          const getErrors = useForm((s)=>s.getErrors)
          const setError = useForm((s)=>s.setError)
          const reset = useForm((s)=>s.reset)
@@ -545,7 +545,7 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
             handleSubmit,
             Controller,
             setValue,
-            getvalues,
+            getValues,
             getErrors,
             setError,
             reset,

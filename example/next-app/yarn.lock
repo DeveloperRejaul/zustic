@@ -2867,6 +2867,6 @@ yocto-queue@^0.1.0:
   resolved "https://registry.npmjs.org/zod/-/zod-4.4.3.tgz"
   integrity sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==
 
-"zustic@file:../../../../../.nvm/versions/node/v24.14.1/lib/node_modules/zustic":
-  version "1.1.5"
-  resolved "file:../../../../../.nvm/versions/node/v24.14.1/lib/node_modules/zustic"
+"zustic@file:../..":
+  version "1.1.6"
+  resolved "file:../.."
