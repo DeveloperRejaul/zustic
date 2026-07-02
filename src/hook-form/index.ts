@@ -1,6 +1,8 @@
+'use client'
+
 import { create } from "core";
 import React from "react";
-import { getNumberRule, getRequired, getValues, normalizeDefaultValues, parseValue, yupResolver, zodResolver } from "./utils";
+import { getNumberRule, getRequired, getValues as gv, normalizeDefaultValues, parseValue, yupResolver, zodResolver } from "./utils";
 import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
 
 
@@ -156,7 +158,7 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
             const state = get();
             const fieldState = state[field] as Field<T[keyof T]>;
             let error: string = "";
-            const values = getValues<T>(state as any);
+            const values = gv<T>(state as any);
             const result = await resolver(values);
             
             if (result?.errors) {
@@ -192,7 +194,7 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
 
             let hasError = false;
             const state = get();
-            const values = getValues<T>(state as any);
+            const values = gv<T>(state as any);
             const keys = Object.keys(values) as Array<keyof T>;
             
             // validate all fields dynamically
@@ -221,11 +223,11 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
          * const allValues = getvalues();  // { email: 'user@example.com', age: 25 }
          * const email = getvalues('email');  // 'user@example.com'
          */
-        getvalues: (key?: keyof T): void => {
+        getValues: (key?: keyof T) => {
             if(key){
                 return get()[key].value
             }
-            return getValues(key)
+            return gv(get())
         },
         /**
          * Sets a field value with optional validation.

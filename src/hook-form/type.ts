@@ -190,7 +190,7 @@ export interface ControllerProps<T extends Record<string, any>> {
  * @property defaultValidateField - Validate using built-in rules
  * @property resolverValidate - Validate using custom resolver
  * @property handleSubmit - Form submission handler
- * @property getvalues - Get form values or specific field
+ * @property getValues - Get form values or specific field
  * @property setError - Manually set field error
  * @property getErrors - Get all/specific field errors
  * @property clearFieldError - Clear single field error
@@ -217,7 +217,7 @@ export  type FormState<T> = Record<keyof T, Field<T[keyof T]>> & {
   defaultValidateField: (field: keyof T) => string;
   resolverValidate: (field: keyof T) => Promise<string | undefined>;
   handleSubmit: (cb: (data: T) => void) => (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  getvalues: (key?: keyof T) => void;
+  getValues: (key?: keyof T) => T | T[keyof T];
   setValue: (key: keyof T, value: T[keyof T]) => void;
   setError: (field: keyof T, error: string) => void;
   getErrors: (key?: keyof T) => Partial<Record<keyof T, string>> | string;
