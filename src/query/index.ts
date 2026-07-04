@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect } from "react";
 import type { ApiMiddleware, ApiPlugin, BuilderType, CreateApiParams, EndpointsMap, HooksFromEndpoints, InferQueryArg, InferQueryResult, QueryHookOption, QueryKeys, QueryStore, UpdateQueryPatchResult } from "./types";
 import {create} from '../core';

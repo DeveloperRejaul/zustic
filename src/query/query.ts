@@ -1,3 +1,5 @@
+'use client';
+
 import { coreFn } from "./core";
 import { ApiMiddleware, ApiPlugin } from "./types";
 

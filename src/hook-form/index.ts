@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { create } from "core";
 import React from "react";

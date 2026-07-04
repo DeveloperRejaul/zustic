@@ -19,8 +19,6 @@ export default function Home() {
 
   const { handleSubmit , Controller,getValues } = useForm()
 
-
-
   const onSubmit = () => {
     console.log(getValues())
   }

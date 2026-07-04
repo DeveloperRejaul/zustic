@@ -1,6 +1,12 @@
-'use client';
-import { useSyncExternalStore } from 'react';
-import type { CreateParamsType, Listener, Middleware, SetSateParams } from './types';
+"use client";
+
+import { useSyncExternalStore } from "react";
+import type {
+  CreateParamsType,
+  Listener,
+  Middleware,
+  SetSateParams,
+} from "./types";
 
 /**
  * Create a store with state and actions.
@@ -49,51 +55,98 @@ function create<T extends object>(
   initializer: CreateParamsType<T>,
   middlewares: Middleware<T>[] = []
 ) {
-  // Internal store state
+  // -----------------------------
+  // Internal State
+  // -----------------------------
   let state: T;
-  let listeners: Listener[] = [];
+  const listeners = new Set<Listener>();
 
-  // Update function
-  const setState = (partial: SetSateParams<T>) => {
-    const partialState = typeof partial === 'function' ? partial(state) : partial;
-    state = { ...state, ...partialState };
-    listeners.forEach(l => l());
-  };
-
+  // -----------------------------
+  // Get State
+  // -----------------------------
   const getState = () => state;
 
-  // setState with Middleware
-  const setStateWithMiddleware = applyMiddleware<T>(setState,getState,middlewares);
+  // -----------------------------
+  // Set State
+  // -----------------------------
+  const setState = (partial: SetSateParams<T>) => {
+    const partialState =
+      typeof partial === "function"
+        ? partial(state)
+        : partial;
 
+    state = {
+      ...state,
+      ...partialState,
+    };
 
-  // Create store
-  state = initializer(setStateWithMiddleware, getState);
+    listeners.forEach((listener) => listener());
+  };
 
+  // -----------------------------
+  // Apply Middleware
+  // -----------------------------
+  const enhancedSet = applyMiddleware(
+    setState,
+    getState,
+    middlewares
+  );
 
-  // Subscribe function
+  // -----------------------------
+  // Initialize Store
+  // -----------------------------
+  state = initializer(enhancedSet, getState);
+
+  // -----------------------------
+  // Subscribe
+  // -----------------------------
   const subscribe = (listener: Listener) => {
-    listeners.push(listener);
+    listeners.add(listener);
+
     return () => {
-      listeners = listeners.filter(l => l !== listener);
+      listeners.delete(listener);
     };
   };
 
-  return <U = T>(selector: (state: T) => U = (s) => s as unknown as U) => useSyncExternalStore(subscribe, () => selector(state))
+  // -----------------------------
+  // Hook
+  // -----------------------------
+  function useStore<U = T>(
+    selector: (state: T) => U = (state) => state as unknown as U
+  ): U {
+    const getSnapshot = () => selector(getState());
+
+    return useSyncExternalStore(
+      subscribe,
+      getSnapshot,
+      getSnapshot
+    );
+  }
+
+  // Optional utilities
+  useStore.getState = getState;
+  useStore.setState = setState;
+  useStore.subscribe = subscribe;
+
+  return useStore;
 }
 
-
-const applyMiddleware = <T>(
+/**
+ * Apply middleware pipeline.
+ */
+function applyMiddleware<T>(
   set: (partial: SetSateParams<T>) => void,
   get: () => T,
-  middlewares?: Middleware<T>[]
-):((partial: SetSateParams<T>) => void) => {
-  if (!middlewares || middlewares.length === 0) {
+  middlewares: Middleware<T>[] = []
+) {
+  if (!middlewares.length) {
     return set;
   }
 
-  return middlewares.reduceRight((next, mw) => mw(set, get)(next),set);
-};
-
-export {
-  create
+  return middlewares.reduceRight(
+    (next, middleware) => middleware(set, get)(next),
+    set
+  );
 }
+
+export { create };

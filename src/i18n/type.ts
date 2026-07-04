@@ -1,4 +1,3 @@
-
 export interface I18nParams<T, L> {
   initialLan: L;
   resource: (lan: L) => Promise<T> | T;

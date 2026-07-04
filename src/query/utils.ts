@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Capitalizes the first character of a string.
  * @param str - The string to capitalize

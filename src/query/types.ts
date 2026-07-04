@@ -1,4 +1,3 @@
-
 /**
  * Query function object structure for HTTP requests.
  * Defines the HTTP method, URL, body, and headers for an API call.
