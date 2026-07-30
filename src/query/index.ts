@@ -305,7 +305,7 @@ function createApi<
       (initiate as any)[key] = (arg?: any) => {
         const cacheKey = createCacheKey(key, arg);
         const store = createOrGetQueryStore(key, def, cacheKey);
-        return store().query(arg);
+        return store.getState().query(arg);
       };
     } else {
       hooks[`use${baseName}Mutation`] = result?.useMutation;
@@ -341,7 +341,7 @@ function createApi<
         }
 
         const mStore = stors.get(mutKey)!;
-        return mStore().query(arg);
+        return mStore.getState().query(arg);
       }
     }
   }
