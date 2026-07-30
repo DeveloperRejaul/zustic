@@ -379,6 +379,32 @@ export type InferQueryResult<T> = T extends QueryDef<any, infer Result, any> ? R
  * api.utils.updateQueryData('getUser', {id: 1}, (draft) => {...});
  * ```
  */
+export type EndpointInitiateResult<Result> = Promise<{
+  data: Result;
+  error?: undefined;
+} | {
+  error: any;
+  data?: undefined;
+}>;
+
+type QueryHookWithInitiate<Arg, Result> = ((arg: Arg, option?: QueryHookOption) => MainQueryHookResult<Result>) & {
+  initiate: (arg: Arg) => EndpointInitiateResult<Result>;
+};
+
+type LazyQueryHookWithInitiate<Arg, Result> = (() => readonly [
+  (arg: Arg) => void,
+  MainQueryHookResult<Result>
+]) & {
+  initiate: (arg: Arg) => EndpointInitiateResult<Result>;
+};
+
+type MutationHookWithInitiate<Arg, Result> = (() => readonly [
+  (arg: Arg) => Promise<Result>,
+  MainMutationState<Result>
+]) & {
+  initiate: (arg: Arg) => EndpointInitiateResult<Result>;
+};
+
 export type HooksFromEndpoints<
   T extends EndpointsMap<TagTypes>, 
   TagTypes extends readonly string[] = readonly []
@@ -392,7 +418,7 @@ export type HooksFromEndpoints<
         : never
   ]:
     T[K] extends QueryDef<infer Arg, infer Result, any>
-      ? (arg: Arg, option?: QueryHookOption) => MainQueryHookResult<Result>
+      ? QueryHookWithInitiate<Arg, Result>
       : never;
 }
 
@@ -405,10 +431,7 @@ export type HooksFromEndpoints<
         : never
   ]:
     T[K] extends QueryDef<infer Arg, infer Result, any>
-      ? () => readonly [
-          (arg: Arg) => void,
-          MainQueryHookResult<Result>
-        ]
+      ? LazyQueryHookWithInitiate<Arg, Result>
       : never;
 }
 
@@ -421,14 +444,12 @@ export type HooksFromEndpoints<
         : never
   ]:
     T[K] extends MutationDef<infer Arg, infer Result, any>
-      ? () => readonly [
-          (arg: Arg) => Promise<Result>,
-          MainMutationState<Result>
-        ]
+      ? MutationHookWithInitiate<Arg, Result>
       : never;
 }
+
+/** Utilities for cache management and manual updates */
 & {
-  /** Utilities for cache management and manual updates */
   utils: {
     /**
      * Manually update query cache data with optimistic updates.
@@ -515,8 +536,8 @@ export type HooksFromEndpoints<
      * ```
      */
     refetchQuery<K extends QueryKeys<T>>(key: K, arg: InferQueryArg<T[K]>): void;
-  };
-};
+  }
+}
 
 
 /**
