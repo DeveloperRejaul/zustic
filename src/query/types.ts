@@ -427,8 +427,9 @@ export type HooksFromEndpoints<
         ]
       : never;
 }
+
+/** Utilities for cache management and manual updates */
 & {
-  /** Utilities for cache management and manual updates */
   utils: {
     /**
      * Manually update query cache data with optimistic updates.
@@ -515,7 +516,29 @@ export type HooksFromEndpoints<
      * ```
      */
     refetchQuery<K extends QueryKeys<T>>(key: K, arg: InferQueryArg<T[K]>): void;
-  };
+
+    initiate:InitiateFromEndpoints<T> 
+  }
+}
+
+/**
+ * Generate an `initiate` mapping for all endpoints.
+ *
+ * For queries: `(arg?: Arg) => Promise<Result>`
+ * For mutations: `(arg?: Arg) => Promise<Result>`
+ *
+ * This enables `api.initiate.endpointName(arg)` with proper autocompletion
+ * and type-checked argument/return types.
+ */
+export type InitiateFromEndpoints<
+  T extends EndpointsMap<any>
+> = {
+  [K in keyof T]:
+    T[K] extends QueryDef<infer Arg, infer Result, any>
+      ? (arg?: Arg) => Promise<Result>
+      : T[K] extends MutationDef<infer MArg, infer MResult, any>
+        ? (arg?: MArg) => Promise<MResult>
+        : never
 };
 
 
