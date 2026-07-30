@@ -2,14 +2,8 @@
 
 import { create as c } from 'core';
 import { useEffect} from 'react';
-import type { I18nParams, StoreType, TranslationKey } from './type';
+import type { I18nInstance, I18nParams, StoreType, TranslationKey } from './type';
 
-interface I18nInstance<T = any, L = any> {
-  t(key: TranslationKey<T>): string
-  lan: L;
-  updateTranslation(lang: L): void
-  reload(): Promise<void>
-}
 
 function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
   const { resource, initialLan } = params;
@@ -76,13 +70,6 @@ function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
       await load(lan)
     }
 
-    // sync global object
-    i18n.t = t;
-    i18n.lan = lan;
-    i18n.updateTranslation = updateTranslation;
-    i18n.reload = reload;
-
-
     return {
       reload,
       t,
@@ -93,10 +80,7 @@ function createI18n<T = any, L = any>(params: I18nParams<T, L>) {
     };
   };
 
-  return {
-    useTranslation,
-    i18n: i18n as I18nInstance<T, L>,
-  }
+  return Object.assign(useTranslation, {i18n})
 }
 
 export{ 
