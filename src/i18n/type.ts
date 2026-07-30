@@ -27,6 +27,7 @@ type NestedKeys<T, D extends number = 9> =
     : never;
 
 export type TranslationKey<T> = NestedKeys<T> & string;
+
 export type StoreType<T, L> = {
     lan: L
     update: (lan: L) => void
@@ -34,4 +35,11 @@ export type StoreType<T, L> = {
     isUpdating: boolean,
     isInitialLoading: boolean,
     load(lan: L): Promise<void>
+}
+
+export interface I18nInstance<T = any, L = any> {
+  t(key: TranslationKey<T>): string
+  lan: L;
+  updateTranslation(lang: L): void
+  reload(): Promise<void>
 }

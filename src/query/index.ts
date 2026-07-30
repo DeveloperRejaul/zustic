@@ -185,47 +185,80 @@ function createApi<
         }
       };
 
-      /** LAZY QUERY */
-      const useLazyQuery = () => {
-        const [arg, setArg] = React.useState<any>(undefined);
-        const [isTriggered, setIsTriggered] = React.useState(false);
+    /** LAZY QUERY */
+    // const useLazyQuery = () => {
+    //   const [arg, setArg] = React.useState<any>(undefined);
+    //   const [isTriggered, setIsTriggered] = React.useState(false);
 
-        const trigger = (newArg: any) => {
-          setArg(newArg);
-          setIsTriggered(true);
-        };
+    //   const trigger = (newArg: any) => {
+    //     setArg(newArg);
+    //     setIsTriggered(true);
+    //   };
 
-        const cacheKey = isTriggered && arg !== undefined ? createCacheKey(key, arg) : "__lazy__";
-        const store = createOrGetEndpointStore(cacheKey, def, cacheTimeout, false);
-        const {
-          query,
-          error,
-          isError,
-          isLoading,
-          isSuccess,
-          data,
-          reFetch
-        } = store();
+    //   const cacheKey = isTriggered && arg !== undefined ? createCacheKey(key, arg) : "__lazy__";
+    //   const store = createOrGetEndpointStore(cacheKey, def, cacheTimeout, false);
+    //   const {
+    //     query,
+    //     error,
+    //     isError,
+    //     isLoading,
+    //     isSuccess,
+    //     data,
+    //     reFetch
+    //   } = store();
 
-        useEffect(() => {
-          if(!isTriggered) return;
-          query(arg);
-        }, [isTriggered, JSON.stringify(arg), query]);
+    //   useEffect(() => {
+    //     if(!isTriggered) return;
+    //     query(arg);
+    //   }, [isTriggered, JSON.stringify(arg), query]);
 
-        return [
-          trigger,
-          {
-            error,
-            isError,
-            isLoading,
-            isSuccess,
-            data,
-            reFetch,
-          }
-        ] as const;
-      };
+    //   return [
+    //     trigger,
+    //     {
+    //       error,
+    //       isError,
+    //       isLoading,
+    //       isSuccess,
+    //       data,
+    //       reFetch,
+    //     }
+    //   ] as const;
+    // };
 
+    const useLazyQuery = () => {
+      const [cacheKey, setCacheKey] = React.useState("__lazy__");
 
+      const store = React.useMemo(() => createOrGetEndpointStore(cacheKey, def, cacheTimeout, false),[cacheKey]);
+
+      const trigger = React.useCallback((arg: any) => {
+        const newKey = createCacheKey(key, arg);
+
+        setCacheKey(newKey);
+
+        return createOrGetEndpointStore(
+          newKey,
+          def,
+          cacheTimeout,
+          false
+        )
+        .getState()
+        .query(arg);
+      }, []);
+
+      const state = store();
+
+      return [
+        trigger,
+        {
+          data: state.data,
+          isLoading: state.isLoading,
+          isSuccess: state.isSuccess,
+          isError: state.isError,
+          error: state.error,
+          reFetch: state.reFetch,
+        },
+      ] as const;
+    };
       const useQueryWithInitiate = Object.assign(useQuery, { initiate });
       const useLazyQueryWithInitiate = Object.assign(useLazyQuery, { initiate });
 

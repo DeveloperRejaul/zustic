@@ -7,31 +7,31 @@ type DataType = {
   login: string;
 };
 
-const {useTranslation, i18n} = createI18n<DataType, 'bn' | 'en'>({
+const useTranslation = createI18n<DataType, 'bn' | 'en'>({
   initialLan: 'bn',
   async resource(lan) {
-    console.log('call');
-    
-    const response = await fetch(
-      `https://raw.githubusercontent.com/DeveloperRejaul/react-native-i18/main/locales/${lan}/common.json`,
-      {
-        cache: 'no-store',
+    await new Promise((res) => {
+      setTimeout(() => {
+        res(true)
+      }, 1000);
+    })
+    const data = {
+      en :{
+        welcome:"welcome",
+        login:"login",
+      },
+      bn :{
+        welcome:"welcomebn",
+        login:"loginbn",
       }
-    );
-
-    if (!response.ok) {
-      console.log('faild');
-      
-      throw new Error(`Failed to load ${lan} locale`);
     }
-
-    return await response.json();
-  },
+    return data[lan]
+  }
 });
 
 
 export default function I18() {
-  const {isInitialLoading, isUpdating ,t,reload} = useTranslation();
+  const {isInitialLoading, isUpdating} = useTranslation();
 
   if (isInitialLoading) {
     return <p>Loading translations...</p>;
@@ -39,22 +39,22 @@ export default function I18() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>🌐 Language: {i18n.lan}</h2>
+      <h2>🌐 Language: {useTranslation.i18n.lan}</h2>
 
       {/* Language Switch */}
-      <button onClick={() => i18n.updateTranslation('en')}>English</button>
-      <button onClick={() => i18n.updateTranslation('bn')}>বাংলা</button>
-      <button onClick={() => reload()}>reload</button>
+      <button onClick={() => useTranslation.i18n.updateTranslation('en')}>English</button>
+      <button onClick={() => useTranslation.i18n.updateTranslation('bn')}>বাংলা</button>
+      <button onClick={() => useTranslation.i18n.reload()}>reload</button>
 
       {isUpdating && <p>🔄 Updating...</p>}
 
       <hr />
 
       {/* Translations */}
-       <p><b>Name:</b> {t('welcome')}</p>
-      <p><b>Email:</b> {t('login')}</p>
+       <p><b>Name:</b> {useTranslation.i18n.t('welcome')}</p>
+      <p><b>Email:</b> {useTranslation.i18n.t('login')}</p>
 
-      <p onClick={() => i18n.reload()}>Reload</p>
+      <p onClick={() => useTranslation.i18n.reload()}>Reload</p>
       {/* <h3>🏫 School</h3>
 
       <h3>👨‍🎓 Student</h3>

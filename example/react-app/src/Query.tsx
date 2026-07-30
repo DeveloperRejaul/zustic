@@ -34,7 +34,7 @@ const api = createApi({
         query: () => '/posts'
      }),
      
-     getUser: builder.query({
+     getUser: builder.query<{hello: string}, void>({
         query: () => '/users',
         async onQueryStarted(arg, a) {
             try {
@@ -53,14 +53,21 @@ const api = createApi({
 
 
 export default function Query() {
-    const [getUser, {data, isLoading}] = api.useLazyGetUserQuery()
-console.log('data', data);
+    const [getUser, res] = api.useLazyGetUserQuery()
 
+    console.log('res', res);
+    
 
-useEffect(() => {
-    getUser()
-}, [])
   return (
-    <div>Query</div>
+    <div
+    
+    onClick={async() => {
+        const res1=  await getUser()
+        console.log("res1",res1);
+        
+         
+    }}
+    
+    >Query</div>
   )
 }

@@ -392,7 +392,7 @@ type QueryHookWithInitiate<Arg, Result> = ((arg: Arg, option?: QueryHookOption) 
 };
 
 type LazyQueryHookWithInitiate<Arg, Result> = (() => readonly [
-  (arg: Arg) => void,
+  (arg: Arg) => EndpointInitiateResult<Result>,
   MainQueryHookResult<Result>
 ]) & {
   initiate: (arg: Arg) => EndpointInitiateResult<Result>;
