@@ -147,7 +147,7 @@ function createApi<
    */
   const createEndpointHook = (key: string, def: any) => {
     if (def.type === 'query') {
-      const initiate = (arg?: any) => {
+      const initiate = (arg: any) => {
         const cacheKey = createCacheKey(key, arg);
         const store = createOrGetEndpointStore(cacheKey, def, cacheTimeout, false);
         return store.getState().query(arg);
@@ -236,7 +236,7 @@ function createApi<
     }
 
     if (def.type === 'mutation') {
-      const initiate = (arg?: any) => {
+      const initiate = (arg: any) => {
         const mutationStore = createOrGetEndpointStore(`__mut__${key}`, def, 0, true);
         return mutationStore.getState().query(arg);
       };

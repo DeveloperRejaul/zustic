@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 import {createApi} from 'zustic/query'
 
@@ -30,7 +30,7 @@ const api = createApi({
     },
 
     endpoints: (builder) =>  ({
-     getPost: builder.query<{}, void>({
+     getPost: builder.query<{name:string}, {id:string}>({
         query: () => '/posts'
      }),
      
@@ -38,6 +38,8 @@ const api = createApi({
         query: () => '/users',
         async onQueryStarted(arg, a) {
             try {
+            const {data} = await api.useGetPostQuery.initiate({id: '10'})
+            console.log('data1', data);
             
             } catch (error) {
                 
@@ -51,8 +53,13 @@ const api = createApi({
 
 
 export default function Query() {
-    const {data, isLoading} = api.useGetPostQuery()
+    const [getUser, {data, isLoading}] = api.useLazyGetUserQuery()
+console.log('data', data);
 
+
+useEffect(() => {
+    getUser()
+}, [])
   return (
     <div>Query</div>
   )

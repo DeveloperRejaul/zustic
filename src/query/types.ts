@@ -388,21 +388,21 @@ export type EndpointInitiateResult<Result> = Promise<{
 }>;
 
 type QueryHookWithInitiate<Arg, Result> = ((arg: Arg, option?: QueryHookOption) => MainQueryHookResult<Result>) & {
-  initiate: (arg?: Arg) => EndpointInitiateResult<Result>;
+  initiate: (arg: Arg) => EndpointInitiateResult<Result>;
 };
 
 type LazyQueryHookWithInitiate<Arg, Result> = (() => readonly [
   (arg: Arg) => void,
   MainQueryHookResult<Result>
 ]) & {
-  initiate: (arg?: Arg) => EndpointInitiateResult<Result>;
+  initiate: (arg: Arg) => EndpointInitiateResult<Result>;
 };
 
 type MutationHookWithInitiate<Arg, Result> = (() => readonly [
   (arg: Arg) => Promise<Result>,
   MainMutationState<Result>
 ]) & {
-  initiate: (arg?: Arg) => EndpointInitiateResult<Result>;
+  initiate: (arg: Arg) => EndpointInitiateResult<Result>;
 };
 
 export type HooksFromEndpoints<
