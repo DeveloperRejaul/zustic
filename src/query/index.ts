@@ -185,46 +185,50 @@ function createApi<
         }
       };
 
-      /** LAZY QUERY */
-      const useLazyQuery = () => {
-        const [arg, setArg] = React.useState<any>(undefined);
-        const [isTriggered, setIsTriggered] = React.useState(false);
+    /** LAZY QUERY */
+    const useLazyQuery = () => {
+      const [store, setStore] = React.useState(() =>createOrGetEndpointStore("__lazy__", def, cacheTimeout, true));
 
-        const trigger = (newArg: any) => {
-          setArg(newArg);
-          setIsTriggered(true);
-        };
+      const trigger = React.useCallback((newArg: any) => {
+        const cacheKey = createCacheKey(key, newArg);
 
-        const cacheKey = isTriggered && arg !== undefined ? createCacheKey(key, arg) : "__lazy__";
-        const store = createOrGetEndpointStore(cacheKey, def, cacheTimeout, false);
-        const {
-          query,
+        const nextStore = createOrGetEndpointStore(
+          cacheKey,
+          def,
+          cacheTimeout,
+          true
+        );
+
+        // Switch subscription to the new cache store.
+        // This causes the component to re-render and subscribe
+        // to the correct query state.
+        setStore(nextStore);
+
+        // Execute the request immediately.
+        return nextStore.getState().query(newArg);
+      }, []);
+
+      const {
+        error,
+        isError,
+        isLoading,
+        isSuccess,
+        data,
+        reFetch,
+      } = store();
+
+      return [
+        trigger,
+        {
           error,
           isError,
           isLoading,
           isSuccess,
           data,
-          reFetch
-        } = store();
-
-        useEffect(() => {
-          if(!isTriggered) return;
-          query(arg);
-        }, [isTriggered, JSON.stringify(arg), query]);
-
-        return [
-          trigger,
-          {
-            error,
-            isError,
-            isLoading,
-            isSuccess,
-            data,
-            reFetch,
-          }
-        ] as const;
-      };
-
+          reFetch,
+        },
+      ] as const;
+    };
 
       const useQueryWithInitiate = Object.assign(useQuery, { initiate });
       const useLazyQueryWithInitiate = Object.assign(useLazyQuery, { initiate });

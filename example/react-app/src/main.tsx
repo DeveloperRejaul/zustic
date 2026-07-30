@@ -1,6 +1,6 @@
 // import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-// import Query from './Query'
+import Query from './Query'
 // import QueryAndStateManagement from './query-and-state-management'
 import I18 from './i18'
 // import HookForm from './Hook-form'
@@ -10,6 +10,6 @@ import I18 from './i18'
 
 createRoot(document.getElementById('root')!).render(
   // <StrictMode>
-    <I18 />
+    <Query />
   // </StrictMode>,
 )
