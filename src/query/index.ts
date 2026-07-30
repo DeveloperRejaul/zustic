@@ -186,50 +186,79 @@ function createApi<
       };
 
     /** LAZY QUERY */
+    // const useLazyQuery = () => {
+    //   const [arg, setArg] = React.useState<any>(undefined);
+    //   const [isTriggered, setIsTriggered] = React.useState(false);
+
+    //   const trigger = (newArg: any) => {
+    //     setArg(newArg);
+    //     setIsTriggered(true);
+    //   };
+
+    //   const cacheKey = isTriggered && arg !== undefined ? createCacheKey(key, arg) : "__lazy__";
+    //   const store = createOrGetEndpointStore(cacheKey, def, cacheTimeout, false);
+    //   const {
+    //     query,
+    //     error,
+    //     isError,
+    //     isLoading,
+    //     isSuccess,
+    //     data,
+    //     reFetch
+    //   } = store();
+
+    //   useEffect(() => {
+    //     if(!isTriggered) return;
+    //     query(arg);
+    //   }, [isTriggered, JSON.stringify(arg), query]);
+
+    //   return [
+    //     trigger,
+    //     {
+    //       error,
+    //       isError,
+    //       isLoading,
+    //       isSuccess,
+    //       data,
+    //       reFetch,
+    //     }
+    //   ] as const;
+    // };
+
     const useLazyQuery = () => {
-      const [store, setStore] = React.useState(() =>createOrGetEndpointStore("__lazy__", def, cacheTimeout, true));
+      const [cacheKey, setCacheKey] = React.useState("__lazy__");
 
-      const trigger = React.useCallback((newArg: any) => {
-        const cacheKey = createCacheKey(key, newArg);
+      const store = React.useMemo(() => createOrGetEndpointStore(cacheKey, def, cacheTimeout, false),[cacheKey]);
 
-        const nextStore = createOrGetEndpointStore(
-          cacheKey,
+      const trigger = React.useCallback((arg: any) => {
+        const newKey = createCacheKey(key, arg);
+
+        setCacheKey(newKey);
+
+        return createOrGetEndpointStore(
+          newKey,
           def,
           cacheTimeout,
-          true
-        );
-
-        // Switch subscription to the new cache store.
-        // This causes the component to re-render and subscribe
-        // to the correct query state.
-        setStore(nextStore);
-
-        // Execute the request immediately.
-        return nextStore.getState().query(newArg);
+          false
+        )
+        .getState()
+        .query(arg);
       }, []);
 
-      const {
-        error,
-        isError,
-        isLoading,
-        isSuccess,
-        data,
-        reFetch,
-      } = store();
+      const state = store();
 
       return [
         trigger,
         {
-          error,
-          isError,
-          isLoading,
-          isSuccess,
-          data,
-          reFetch,
+          data: state.data,
+          isLoading: state.isLoading,
+          isSuccess: state.isSuccess,
+          isError: state.isError,
+          error: state.error,
+          reFetch: state.reFetch,
         },
       ] as const;
     };
-
       const useQueryWithInitiate = Object.assign(useQuery, { initiate });
       const useLazyQueryWithInitiate = Object.assign(useLazyQuery, { initiate });
 

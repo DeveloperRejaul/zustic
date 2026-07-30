@@ -55,14 +55,16 @@ const api = createApi({
 export default function Query() {
     const [getUser, res] = api.useLazyGetUserQuery()
 
-    console.log(res);
+    console.log('res', res);
     
 
   return (
     <div
     
     onClick={async() => {
-          await getUser()
+        const res1=  await getUser()
+        console.log("res1",res1);
+        
          
     }}
     
