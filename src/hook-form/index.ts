@@ -2,7 +2,7 @@
 
 import { create } from "core";
 import React from "react";
-import { getNumberRule, getRequired, getValues as gv, normalizeDefaultValues, parseValue, yupResolver, zodResolver } from "./utils";
+import { getDefaultValues, getNumberRule, getRequired, getValues as gv, parseValue, yupResolver, zodResolver } from "./utils";
 import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
 
 
@@ -67,11 +67,12 @@ import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
  * });
  */
 
-function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
-    const { defaultValues, resolver } = params;
-    const fd: Record<keyof T, Field<T[keyof T]>> = normalizeDefaultValues(defaultValues);
+function createForm<T extends Record<string, any>,  P extends Record<string, any> = T>(params: HookFormParams<T, P>) {
+    const { defaultValues, resolver} = params;
+
+    let useFormStore: ReturnType<typeof create<FormState<T>>> |  null = null;
     
-    const useForm = create<FormState<T>>((set, get) => ({
+    const useForm =  (fd: Record<keyof T, Field<T[keyof T]>>) => create<FormState<T>>((set, get) => ({
         ...fd,
         /**
          * Updates a single field value and casts it to the correct type.
@@ -423,6 +424,7 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
         },
     }))
     
+
     /**
      * Component-wrapper for controlled form inputs.
      * Automatically manages field state, validation, and error messages.
@@ -477,38 +479,38 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
      *   )}
      * />
      */
-    function Controller({ 
-      field, 
-      render
-    }: ControllerProps<T>) {
-      const state = useForm();
-      const value = state[field].value;
-      const error = state[field].error;
-      const setFieldValue = state.setFieldValue;
-      const defaultValidateField = state.defaultValidateField;
-      const resolverValidate = state.resolverValidate;
-      const setTouched = state.setTouched;
-      
-      const handleChange = async (newValue: string) => {
-        // Update field value
-        setFieldValue(field, newValue);
-        
-        // Mark as touched on change
-        setTouched(field, true);
-        
-        // Validate on change
-        if (resolver) {
-            await resolverValidate(field);
-        } else {
-            defaultValidateField(field);
+    function Controller({field,render}: ControllerProps<T>) {
+        if (!useFormStore) {
+            return null;
         }
-      };
+        const state = useFormStore();
 
-      
-      const element = render({error: error || "", onChange: handleChange, value});
-      return element;
+        const value = state[field].value;
+        const error = state[field].error;
+
+        const {
+            setFieldValue,
+            defaultValidateField,
+            resolverValidate,
+            setTouched,
+        } = state;
+
+        const handleChange = async (newValue: string) => {
+            setFieldValue(field, newValue);
+            setTouched(field, true);
+            if (resolver) {
+                await resolverValidate(field);
+            } else {
+                defaultValidateField(field);
+            }
+        };
+
+        return render({
+            error: error || "",
+            onChange: handleChange,
+            value,
+        });
     }
-
     /**
      * Returns the form API and Controller component.
      * Call this as a hook in your React component.
@@ -527,18 +529,23 @@ function createForm<T extends Record<string, any>>(params: HookFormParams<T>) {
      *   </form>
      * );
      */
-    return () => {
-         const handleSubmit = useForm((s)=>s.handleSubmit)
-         const setValue = useForm((s)=>s.setValue)
-         const getValues = useForm((s)=>s.getValues)
-         const getErrors = useForm((s)=>s.getErrors)
-         const setError = useForm((s)=>s.setError)
-         const reset = useForm((s)=>s.reset)
-         const setTouched = useForm((s)=>s.setTouched)
-         const isDirty = useForm((s)=>s.isDirty)
-         const clearAllErrors = useForm((s)=>s.clearAllErrors)
-         const clearFieldError = useForm((s)=>s.clearFieldError)
-         const watch = (key: keyof T) => useForm((state) => state[key].value)
+    return (props?:P) => {
+         const fd: Record<keyof T, Field<T[keyof T]>> = getDefaultValues(defaultValues, props) as Record<keyof T, Field<T[keyof T]>>;
+         if (!useFormStore) {
+            useFormStore = useForm(fd)
+         }
+         const store = useFormStore;
+         const handleSubmit = store((s)=>s.handleSubmit)
+         const setValue = store((s)=>s.setValue)
+         const getValues = store((s)=>s.getValues)
+         const getErrors = store((s)=>s.getErrors)
+         const setError = store((s)=>s.setError)
+         const reset = store((s)=>s.reset)
+         const setTouched = store((s)=>s.setTouched)
+         const isDirty = store((s)=>s.isDirty)
+         const clearAllErrors = store((s)=>s.clearAllErrors)
+         const clearFieldError = store((s)=>s.clearFieldError)
+         const watch = (key: keyof T) =>store((state) => state[key].value);
 
         
         return {

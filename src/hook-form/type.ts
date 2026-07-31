@@ -138,13 +138,20 @@ type Resolver<T extends Record<string, any>> = (
  *   resolver: zodResolver(schema)
  * }
  */
-export interface HookFormParams<T extends Record<string, any>> {
-  defaultValues: {
-    [K in keyof T]: Field<T[K]> | T[K];
-  }
+type DefaultValues<T extends Record<string, any>> = {
+  [K in keyof T]: Field<T[K]> | T[K];
+};
+
+export interface HookFormParams<
+  T extends Record<string, any>,
+  P extends Record<string, any> = {}
+> {
+  defaultValues:
+    | DefaultValues<T>
+    | ((props: P) => DefaultValues<T>);
+
   resolver?: Resolver<T>;
 }
-
 /**
  * Props for the Controller component.
  * Configures controlled input rendering and additional input properties.

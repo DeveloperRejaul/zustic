@@ -1,4 +1,4 @@
-import type { NumberRule, RequiredRule } from "./type";
+import type { Field, NumberRule, RequiredRule } from "./type";
 
 /**
  * Capitalizes the first character of a string.
@@ -199,3 +199,42 @@ export function parseValue<T>(value: any, defaultValue: T): T {
   // fallback: string or other types
   return value as T;
 }
+
+
+ /**
+  * Resolves form default values from a static object or a callback function.
+  *
+  * Supports dynamic default values based on parameters passed to the form hook.
+  * If `defaultValues` is a function, it will be executed with the provided props.
+  * The result is normalized into the internal field structure used by the form.
+  *
+  * @template T - Form values type.
+  * @template P - Parameters type passed to the form hook.
+  *
+  * @param defaultValues - Static default values object or function returning default values.
+  * @param props - Parameters provided when calling the form hook.
+  *
+  * @returns Normalized form field state containing value and validation metadata.
+  *
+  * @example
+  * const fields = getDefaultValues(
+  *   ({ user }) => ({
+  *     name: user.name,
+  *     email: user.email
+  *   }),
+  *   {
+  *     user: {
+  *       name: "John",
+  *       email: "john@example.com"
+  *     }
+  *   }
+  * );
+  */
+export const getDefaultValues = (defaultValues: any,props: any) => {
+  const values =
+    typeof defaultValues === "function"
+      ? defaultValues(props)
+      : defaultValues;
+
+  return normalizeDefaultValues(values);
+};
