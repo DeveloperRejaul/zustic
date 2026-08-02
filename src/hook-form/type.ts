@@ -242,7 +242,7 @@ export  type FormState<T> = Record<string, any> & {
   defaultValidateField: (field: keyof T | string) => string;
   resolverValidate: (field: keyof T | string) => Promise<string | undefined>;
   handleSubmit: (cb: (data: T) => void) => (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  getValues: (key?: keyof T | string) => T | T[keyof T];
+  getValues: (key?: keyof T | string) => T;
   setValue: (key: keyof T | string, value: T[keyof T]) => void;
   setError: (field: keyof T | string, error: string) => void;
   registerField: (field: keyof T | string, defaultField?: Field<T[keyof T]>) => void;
