@@ -155,36 +155,112 @@ export const yupResolver = (schema: any) => async (values: any) => {
   }
 };
 
-
-export function normalizeDefaultValues<T>(defaultValues: any) {
-  const result: any = {};
-
-  Object.keys(defaultValues).forEach((key) => {
-    const value = defaultValues[key];
-
-    // already Field object
-    if (value && typeof value === "object" && "value" in value) {
-      result[key] = {
-        error: "",
-        ...value,
-      };
-    } else {
-      // primitive → convert to Field
-      result[key] = {
-        value,
-        error: "",
-      };
-    }
-  });
-
-  return result as Record<keyof T, any>;
-}
-
+/**
+ * Parses a nested field path into string and numeric tokens.
+ *
+ * @param path - Field path in dot/bracket format, e.g. `user.[0].name`.
+ * @returns An array of segments, with numeric indices parsed as numbers.
+ */
+const parsePath = (path: string): Array<string | number> => {
+  const tokens = path.match(/[^.\[\]]+/g) || [];
+  return tokens.map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
+};
 
 /**
- * Converts a string value to the expected type based on T
- * @param value - The raw input (usually string from input field)
- * @param defaultValue - The default value to infer the type
+ * Normalizes a field path to the internal flattened key format.
+ *
+ * @param path - Field path in any supported string form.
+ * @returns Flattened field key like `user[0].name`.
+ */
+export const normalizeFieldKey = (path: string): string => {
+  const segments = parsePath(path);
+  return segments.reduce<string>((acc, segment) => {
+    const segmentString = String(segment);
+    if (typeof segment === "number") {
+      return `${acc}[${segmentString}]`;
+    }
+    return acc ? `${acc}.${segmentString}` : segmentString;
+  }, "");
+};
+
+/**
+ * Flattens nested default values into a key/value map used by the form store.
+ *
+ * @param values - Nested default value object or array structure.
+ * @param basePath - Current path prefix while recursing.
+ * @returns Flattened map of field values keyed by normalized string paths.
+ */
+const flattenDefaultValues = (values: any, basePath = "") => {
+  const result: Record<string, any> = {};
+
+  const assignField = (path: string, field: any) => {
+    result[path] = {
+      error: field.error ?? "",
+      touched: field.touched ?? false,
+      isDirty: field.isDirty ?? false,
+      ...field,
+    };
+  };
+
+  Object.entries(values || {}).forEach(([key, value]) => {
+    const path = basePath ? `${basePath}.${key}` : key;
+
+    if (value && typeof value === "object" && "value" in value) {
+      assignField(path, value);
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => {
+        const arrayPath = `${path}[${index}]`;
+        if (item && typeof item === "object" && "value" in item) {
+          assignField(arrayPath, item);
+        } else if (typeof item === "object") {
+          Object.assign(result, flattenDefaultValues(item, arrayPath));
+        } else {
+          assignField(arrayPath, { value: item });
+        }
+      });
+      return;
+    }
+
+    if (value && typeof value === "object") {
+      Object.assign(result, flattenDefaultValues(value, path));
+      return;
+    }
+
+    assignField(path, { value });
+  });
+
+  return result;
+};
+
+/**
+ * Normalizes default values into the internal field structure used by the hook-form store.
+ *
+ * @template T - The target form values type.
+ * @param defaultValues - Static or nested default values object.
+ * @returns Normalized record of field configs keyed by flattened paths.
+ *
+ * @example
+ * normalizeDefaultValues({ user: [{ name: 'Alice' }] });
+ * // { 'user[0].name': { value: 'Alice', error: '' } }
+ */
+export function normalizeDefaultValues<T>(defaultValues: any) {
+  return flattenDefaultValues(defaultValues) as Record<keyof T, any>;
+}
+
+/**
+ * Converts a raw input value into the expected field type.
+ *
+ * @template T - Expected field value type.
+ * @param value - Raw input value from a field event.
+ * @param defaultValue - Default field value used to infer the target type.
+ * @returns Parsed value coerced into the expected type.
+ *
+ * @example
+ * parseValue('123', 0); // 123
+ * parseValue('true', false); // true
  */
 export function parseValue<T>(value: any, defaultValue: T): T {
   if (typeof defaultValue === "number") {
@@ -199,6 +275,116 @@ export function parseValue<T>(value: any, defaultValue: T): T {
   // fallback: string or other types
   return value as T;
 }
+
+/**
+ * Converts a flattened field map into a nested object or array shape.
+ *
+ * @template T - Target nested type.
+ * @param values - Flattened values keyed by string paths.
+ * @returns Nested object with arrays reconstructed from bracket notation.
+ */
+export const unflattenValues = <T>(values: Record<string, any>): T => {
+  let result: any = {};
+
+  Object.entries(values).forEach(([path, value]) => {
+    const segments = parsePath(path);
+    if (segments.length === 0) return;
+
+    if (typeof segments[0] === "number" && Array.isArray(result) === false && Object.keys(result).length === 0) {
+      result = [];
+    }
+
+    let current: any = result;
+
+    segments.forEach((segment, index) => {
+      const isLast = index === segments.length - 1;
+      const nextSegment = segments[index + 1];
+      const nextIsNumber = typeof nextSegment === "number";
+      const shouldBeArray = typeof segment === "number" || nextIsNumber;
+
+      if (isLast) {
+        current[segment] = value;
+        return;
+      }
+
+      if (!(segment in current)) {
+        current[segment] = shouldBeArray ? [] : {};
+      }
+
+      current = current[segment];
+    });
+  });
+
+  return result as T;
+};
+
+const isRuleEqual = (a: any, b: any) => {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (a && b && typeof a === "object") {
+    return a.value === b.value && a.message === b.message;
+  }
+  return false;
+};
+
+/**
+ * Compares two pattern rule objects for equality.
+ *
+ * @param a - First pattern rule to compare.
+ * @param b - Second pattern rule to compare.
+ * @returns True when both patterns have the same regex and message.
+ */
+const isPatternEqual = (
+  a?: { value: RegExp; message: string },
+  b?: { value: RegExp; message: string }
+) => {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.message === b.message && a.value.source === b.value.source && a.value.flags === b.value.flags;
+};
+
+/**
+ * Compares two field state objects for equality.
+ *
+ * @param a - First field state to compare.
+ * @param b - Second field state to compare.
+ * @returns True when field value, metadata and validation rules are equal.
+ */
+const areFieldStatesEqual = (a: Field<any>, b: Field<any>) => {
+  return a.value === b.value &&
+    a.error === b.error &&
+    a.touched === b.touched &&
+    a.isDirty === b.isDirty &&
+    isRuleEqual(a.required, b.required) &&
+    isPatternEqual(a.pattern, b.pattern) &&
+    isRuleEqual(a.min, b.min) &&
+    isRuleEqual(a.max, b.max);
+};
+
+/**
+ * Compares normalized default form values to detect when props have changed.
+ *
+ * @param prev - Previous normalized default values or null.
+ * @param next - Current normalized default values.
+ * @returns True when the default value structure is unchanged.
+ */
+export const areDefaultValuesEqual = (
+  prev: Record<keyof any, Field<any>> | null,
+  next: Record<keyof any, Field<any>>
+) => {
+  if (prev === next) return true;
+  if (!prev) return false;
+
+  const prevKeys = Object.keys(prev);
+  const nextKeys = Object.keys(next);
+
+  if (prevKeys.length !== nextKeys.length) return false;
+
+  return prevKeys.every((key) =>
+    nextKeys.includes(key) &&
+    areFieldStatesEqual(prev[key as keyof any] as Field<any>, next[key as keyof any] as Field<any>)
+  );
+};
 
 
  /**

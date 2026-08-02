@@ -2,7 +2,7 @@
 
 import { create } from "core";
 import React from "react";
-import { getDefaultValues, getNumberRule, getRequired, getValues as gv, parseValue, yupResolver, zodResolver } from "./utils";
+import { getDefaultValues, getNumberRule, getRequired, getValues as gv, parseValue, yupResolver, zodResolver, areDefaultValuesEqual, normalizeFieldKey, unflattenValues } from "./utils";
 import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
 
 
@@ -70,9 +70,13 @@ import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
 function createForm<T extends Record<string, any>,  P extends Record<string, any> = T>(params: HookFormParams<T, P>) {
     const { defaultValues, resolver} = params;
 
-    let useFormStore: ReturnType<typeof create<FormState<T>>> |  null = null;
-    
-    const useForm =  (fd: Record<keyof T, Field<T[keyof T]>>) => create<FormState<T>>((set, get) => ({
+    let useFormStore: ReturnType<typeof create<FormState<T>>> | null = null;
+    let previousDefaultValues: Record<string, Field<any>> | null = null;
+
+    const normalizeField = (field: keyof T | string) =>
+        typeof field === "string" ? normalizeFieldKey(field) : String(field);
+
+    const useForm =  (fd: Record<string, Field<any>>) => create<FormState<T>>((set, get) => ({
         ...fd,
         /**
          * Updates a single field value and casts it to the correct type.
@@ -84,12 +88,13 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * setFieldValue('email', 'user@example.com');
          * setFieldValue('age', '25');  // Automatically converted to number
          */
-        setFieldValue: (field: keyof T, value: any): void => {
-            const fieldState = get()[field];
+        setFieldValue: (field: keyof T | string, value: any): void => {
+            const fieldKey = normalizeField(field);
+            const fieldState = get()[fieldKey];
             set({
-                [field]: {
+                [fieldKey]: {
                     ...fieldState,
-                    value: parseValue<T[keyof T]>(value, fd[field]?.value)
+                    value: parseValue<any>(value, fieldState?.value)
                 }
             } as any);
         },
@@ -104,13 +109,14 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * const error = defaultValidateField('email');
          * if (error) console.log(error);  // 'Email is required'
          */
-        defaultValidateField: (field: keyof T): string => {
+        defaultValidateField: (field: keyof T | string): string => {
+            const fieldKey = normalizeField(field);
             const state = get();
-            const fieldState = state[field] as Field<T[keyof T]>;
+            const fieldState = state[fieldKey] as Field<T[keyof T]>;
             let error: string = "";
-            const value = parseValue<T[keyof T]>(fieldState.value, fieldState.value);
+            const value = parseValue<any>(fieldState.value, fieldState.value);
 
-            const required = getRequired(fieldState.required, String(field));
+            const required = getRequired(fieldState.required, String(fieldKey));
             const min = getNumberRule(fieldState.min, "min");
             const max = getNumberRule(fieldState.max, "max");
 
@@ -134,7 +140,7 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
             }
             
             set({
-                [field]: {
+                [fieldKey]: {
                     ...fieldState,
                     error,
                 }
@@ -153,13 +159,14 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * const error = await resolverValidate('email');
          * if (error) console.log(error);  // 'Must be valid email'
          */
-        resolverValidate: async (field: keyof T): Promise<string | undefined> => {
+        resolverValidate: async (field: keyof T | string): Promise<string | undefined> => {
             if (!resolver) return undefined;
 
+            const fieldKey = normalizeField(field);
             const state = get();
-            const fieldState = state[field] as Field<T[keyof T]>;
+            const fieldState = state[fieldKey] as Field<T[keyof T]>;
             let error: string = "";
-            const values = gv<T>(state as any);
+            const values = unflattenValues<T>(gv(get()) as Record<string, any>);
             const result = await resolver(values);
             
             if (result?.errors) {
@@ -168,7 +175,7 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
             }
 
             set({
-                [field]: {
+                [fieldKey]: {
                     ...fieldState,
                     error,
                 },
@@ -195,8 +202,9 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
 
             let hasError = false;
             const state = get();
-            const values = gv<T>(state as any);
-            const keys = Object.keys(values) as Array<keyof T>;
+            const flatValues = gv(get()) as Record<string, any>;
+            const values = unflattenValues<T>(flatValues);
+            const keys = Object.keys(flatValues) as Array<string>;
             
             // validate all fields dynamically
             if (resolver) {
@@ -224,11 +232,11 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * const allValues = getValues();  // { email: 'user@example.com', age: 25 }
          * const email = getValues('email');  // 'user@example.com'
          */
-        getValues: (key?: keyof T) => {
-            if(key){
-                return get()[key].value
+        getValues: (key?: keyof T | string) => {
+            if (key) {
+                return get()[normalizeField(key)].value;
             }
-            return gv(get())
+            return unflattenValues<T>(gv(get()) as Record<string, any>);
         },
         /**
          * Sets a field value with optional validation.
@@ -240,13 +248,14 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * setValue('email', 'user@example.com');
          * setValue('age', 25);
          */
-        setValue: (key: keyof T, value: T[keyof T]): void => {
+        setValue: (key: keyof T | string, value: T[keyof T]): void => {
+            const fieldKey = normalizeField(key);
             set({
-                [key]:{
-                    ...get()[key],
+                [fieldKey]: {
+                    ...get()[fieldKey],
                     value,
                 }
-            } as any)
+            } as any);
         },
         /**
          * Manually set an error message for a field.
@@ -258,10 +267,11 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * @example
          * setError('email', 'This email is already registered');
          */
-        setError: (field: keyof T, error: string): void => {
-            const fieldState = get()[field];
+        setError: (field: keyof T | string, error: string): void => {
+            const fieldKey = normalizeField(field);
+            const fieldState = get()[fieldKey];
             set({
-                [field]: {
+                [fieldKey]: {
                     ...fieldState,
                     error,
                 }
@@ -284,22 +294,22 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * const emailError = getErrors('email');
          * // "Email is required"
          */
-        getErrors: (key?: keyof T): Partial<Record<keyof T, string>> | string => {
+        getErrors: (key?: keyof T | string): Partial<Record<string, string>> | string => {
             const state = get();
             
             // If key is provided, return specific field error
             if (key) {
-                const fieldState = state[key];
+                const fieldState = state[normalizeField(key)];
                 return fieldState?.error || "";
             }
             
             // Otherwise return all errors
-            const errors: Partial<Record<keyof T, string>> = {};
+            const errors: Partial<Record<string, string>> = {};
             
             Object.keys(state).forEach((k) => {
-                const fieldState = state[k as keyof T];
-                if (fieldState.error) {
-                    errors[k as keyof T] = fieldState.error;
+                const fieldState = state[k as string];
+                if (fieldState?.error) {
+                    errors[k] = fieldState.error;
                 }
             });
             
@@ -313,10 +323,11 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * @example
          * clearFieldError('email');  // Removes email error
          */
-        clearFieldError: (field: keyof T): void => {
-            const fieldState = get()[field];
+        clearFieldError: (field: keyof T | string): void => {
+            const fieldKey = normalizeField(field);
+            const fieldState = get()[fieldKey];
             set({
-                [field]: {
+                [fieldKey]: {
                     ...fieldState,
                     error: "",
                 }
@@ -333,7 +344,7 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
             const clearedState = {} as any;
             
             Object.keys(state).forEach((key) => {
-                const fieldState = state[key as keyof T];
+                const fieldState = state[key as string];
                 clearedState[key] = {
                     ...fieldState,
                     error: "",
@@ -353,18 +364,18 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * const formDirty = isDirty();  // Check entire form
          * const emailDirty = isDirty('email');  // Check specific field
          */
-        isDirty: (field?: keyof T): boolean => {
+        isDirty: (field?: keyof T | string): boolean => {
             const state = get();
             
             if (field) {
-                const fieldState = state[field];
+                const fieldState = state[normalizeField(field)];
                 return fieldState?.isDirty || false;
             }
             
             // Check if any field is dirty
             return Object.keys(state).some((key) => {
-                const fieldState = state[key as keyof T];
-                return fieldState.isDirty;
+                const fieldState = state[key as string];
+                return fieldState?.isDirty;
             });
         },
         /**
@@ -378,9 +389,9 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          *   // Show validation error only if field was touched
          * }
          */
-        isTouched: (field: keyof T): boolean => {
+        isTouched: (field: keyof T | string): boolean => {
             const state = get();
-            const fieldState = state[field];
+            const fieldState = state[normalizeField(field)];
             return fieldState?.touched || false;
         },
         /**
@@ -394,10 +405,11 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
          * setTouched('email', true);  // Mark as touched
          * setTouched('email', false);  // Mark as not touched
          */
-        setTouched: (field: keyof T, touched: boolean): void => {
-            const fieldState = get()[field];
+        setTouched: (field: keyof T | string, touched: boolean): void => {
+            const fieldKey = normalizeField(field);
+            const fieldState = get()[fieldKey];
             set({
-                [field]: {
+                [fieldKey]: {
                     ...fieldState,
                     touched,
                 }
@@ -414,7 +426,7 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
             const resetState = {} as any;
             Object.keys(fd).forEach((key) => {
                 resetState[key] = {
-                    ...fd[key as keyof T],
+                    ...fd[key as string],
                     error: "",
                     touched: false,
                     isDirty: false,
@@ -484,9 +496,10 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
             return null;
         }
         const state = useFormStore();
+        const fieldKey = normalizeField(field);
 
-        const value = state[field].value;
-        const error = state[field].error;
+        const value = state[fieldKey].value;
+        const error = state[fieldKey].error;
 
         const {
             setFieldValue,
@@ -531,21 +544,25 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
      */
     return (props?:P) => {
          const fd: Record<keyof T, Field<T[keyof T]>> = getDefaultValues(defaultValues, props) as Record<keyof T, Field<T[keyof T]>>;
-         if (!useFormStore) {
-            useFormStore = useForm(fd)
+         const shouldRecreateStore = !useFormStore || !areDefaultValuesEqual(previousDefaultValues, fd);
+
+         if (shouldRecreateStore) {
+            useFormStore = useForm(fd);
+            previousDefaultValues = fd;
          }
-         const store = useFormStore;
-         const handleSubmit = store((s)=>s.handleSubmit)
-         const setValue = store((s)=>s.setValue)
-         const getValues = store((s)=>s.getValues)
-         const getErrors = store((s)=>s.getErrors)
-         const setError = store((s)=>s.setError)
-         const reset = store((s)=>s.reset)
-         const setTouched = store((s)=>s.setTouched)
-         const isDirty = store((s)=>s.isDirty)
-         const clearAllErrors = store((s)=>s.clearAllErrors)
-         const clearFieldError = store((s)=>s.clearFieldError)
-         const watch = (key: keyof T) =>store((state) => state[key].value);
+
+         const store = useFormStore!;
+         const handleSubmit = store((s) => s.handleSubmit)
+         const setValue = store((s) => s.setValue)
+         const getValues = store((s) => s.getValues)
+         const getErrors = store((s) => s.getErrors)
+         const setError = store((s) => s.setError)
+         const reset = store((s) => s.reset)
+         const setTouched = store((s) => s.setTouched)
+         const isDirty = store((s) => s.isDirty)
+         const clearAllErrors = store((s) => s.clearAllErrors)
+         const clearFieldError = store((s) => s.clearFieldError)
+         const watch = (key: keyof T | string) => store((state: any) => state[normalizeField(key)].value);
 
         
         return {
