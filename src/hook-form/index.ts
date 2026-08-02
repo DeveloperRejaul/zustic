@@ -2,7 +2,7 @@
 
 import { create } from "core";
 import React from "react";
-import { getDefaultValues, getNumberRule, getRequired, getValues as gv, parseValue, yupResolver, zodResolver, areDefaultValuesEqual, normalizeFieldKey, unflattenValues } from "./utils";
+import { getDefaultValues, getFieldTemplate, getNumberRule, getRequired, getValues as gv, parseValue, yupResolver, zodResolver, areDefaultValuesEqual, normalizeFieldKey, unflattenValues } from "./utils";
 import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
 
 
@@ -113,12 +113,14 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
             const fieldKey = normalizeField(field);
             const state = get();
             const fieldState = state[fieldKey] as Field<T[keyof T]> | undefined;
+            const template = getFieldTemplate(fieldKey, state);
+            const currentField = fieldState ?? template;
             let error: string = "";
-            const value = parseValue<any>(fieldState?.value ?? "", fieldState?.value ?? "");
+            const value = parseValue<any>(currentField?.value ?? "", currentField?.value ?? "");
 
-            const required = getRequired(fieldState?.required, String(fieldKey));
-            const min = getNumberRule(fieldState?.min, "min");
-            const max = getNumberRule(fieldState?.max, "max");
+            const required = getRequired(currentField?.required, String(fieldKey));
+            const min = getNumberRule(currentField?.min, "min");
+            const max = getNumberRule(currentField?.max, "max");
 
             // handle required
             if (required.value && !value) {
@@ -284,17 +286,21 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
             const fieldKey = normalizeField(field);
             const current = get()[fieldKey];
             if (current) return;
+
+            const template = getFieldTemplate(fieldKey, get());
+            const sourceField = defaultField ?? template;
+
             set({
                 [fieldKey]: {
-                    value: defaultField?.value ?? "",
-                    error: defaultField?.error ?? "",
-                    touched: defaultField?.touched ?? false,
-                    isDirty: defaultField?.isDirty ?? false,
-                    required: defaultField?.required,
-                    pattern: defaultField?.pattern,
-                    min: defaultField?.min,
-                    max: defaultField?.max,
-                    ...defaultField,
+                    value: sourceField?.value ?? "",
+                    error: sourceField?.error ?? "",
+                    touched: sourceField?.touched ?? false,
+                    isDirty: sourceField?.isDirty ?? false,
+                    required: sourceField?.required,
+                    pattern: sourceField?.pattern,
+                    min: sourceField?.min,
+                    max: sourceField?.max,
+                    ...sourceField,
                 }
             } as any);
         },

@@ -78,6 +78,20 @@ export function getNumberRule(rule: NumberRule | undefined, type: "min" | "max")
 }
 
 /**
+ * Gets the template field definition for an indexed array path.
+ *
+ * @param fieldKey - Normalized field path like `user[2].name`.
+ * @param state - Current form state object.
+ * @returns The template field for the same array index group, or undefined.
+ */
+export const getFieldTemplate = (
+  fieldKey: string,
+  state: Record<string, any>
+): Field<any> | undefined => {
+  return state[fieldKey.replace(/\[\d+\]/g, "[0]")] as Field<any> | undefined;
+};
+
+/**
  * Extracts plain values from the form state.
  *
  * @template T - Type of form values
