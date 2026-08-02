@@ -29,16 +29,18 @@ const useForm = createForm<FormType, {xyz:string}>({
       value: "",
       required: { value: true, message: "Name is required" },
     },
-   user: [1,2,3,4,5].map((index) => ({
+   user:[
+    {
       name: {
         value: "",
-        required: { value: true, message: `User name ${index} is required` },
+        required: { value: true, message: `User name  is required` },
       },
       email: {
         value: "",
-        required: { value: true, message: `User email ${index} is required` },
+        required: { value: true, message: `User email  is required` },
       },
-    })),
+    }
+  ]
   }
 });
 
@@ -54,8 +56,10 @@ export default function HookForm() {
     <form
       onSubmit={handleSubmit((data) => {
         setIsLoading(pre => !pre);
-        console.log(data);
-        
+        console.log(data.user[0].name);
+        console.log(data.user[0].email);
+        console.log(data.user[1].name);
+        console.log(data.user[1].email);
       })}
     >
       <Controller
@@ -85,7 +89,7 @@ export default function HookForm() {
           </div>
         )}
       />
-      {[1,2,3,4, 5].map((_, index) => (
+      {[4, 5].map((_, index) => (
         <div key={index}>
         <Controller
           field={`user.${index}.name`}
