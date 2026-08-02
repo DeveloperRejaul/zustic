@@ -3,7 +3,16 @@
 import { create } from "core";
 import React from "react";
 import { getDefaultValues, getFieldTemplate, getNumberRule, getRequired, getValues as gv, parseValue, yupResolver, zodResolver, areDefaultValuesEqual, normalizeFieldKey, unflattenValues } from "./utils";
-import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
+import type { ControllerProps, HookFormParams, Field ,FormState, DefaultValues, ResolveDefaultValues } from "./type";
+
+// Overload: explicit typed HookFormParams (object or function defaultValues included)
+function createForm<T extends Record<string, any>, P extends Record<string, any> = {}>(params: HookFormParams<T, P>): (props?: P) => any;
+
+// Overload: infer T from a function-style or object-style DefaultValues shape
+function createForm<DV extends DefaultValues<any>, P extends Record<string, any> = {}>(params: {
+    defaultValues: DV | ((props: P) => DV);
+    resolver?: any;
+}): (props?: P) => any;
 
 
 /**

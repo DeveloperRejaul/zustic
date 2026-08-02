@@ -19,8 +19,8 @@ const schemaYup = yup.object({
 });
 
 
-const useForm = createForm<FormType, {xyz:string}>({
-  defaultValues:{
+const useForm = createForm({
+  defaultValues: () => ({
     email: {
       value: "",
       required: { value: true, message: "Email is required" },
@@ -41,7 +41,7 @@ const useForm = createForm<FormType, {xyz:string}>({
       },
     }
   ]
-  }
+  } as const)
 });
 
 export default function HookForm() {

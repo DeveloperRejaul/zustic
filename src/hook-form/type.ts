@@ -138,13 +138,27 @@ type Resolver<T extends Record<string, any>> = (
  *   resolver: zodResolver(schema)
  * }
  */
-type DefaultValues<T> = T extends Array<infer U>
+export type DefaultValues<T> = T extends Array<infer U>
   ? Array<DefaultValues<U>>
   : T extends object
   ? {
       [K in keyof T]: DefaultValues<T[K]> | Field<T[K]>;
     }
   : Field<T> | T;
+
+/** Infer plain values from a DefaultValues structure (unwrap Field<T> wrappers). */
+export type InferValuesFromDefault<D> = D extends Array<infer U>
+  ? Array<InferValuesFromDefault<U>>
+  : D extends { value: infer V }
+  ? V
+  : D extends object
+  ? { [K in keyof D]: InferValuesFromDefault<D[K]> }
+  : D;
+
+/** Normalize inferred default-values to a record-shaped form type, fallback to Record. */
+export type ResolveDefaultValues<D> = InferValuesFromDefault<D> extends Record<string, any>
+  ? InferValuesFromDefault<D>
+  : Record<string, any>;
 
 export interface HookFormParams<
   T extends Record<string, any>,
@@ -181,7 +195,7 @@ export interface HookFormParams<
  * }
  */
 export interface ControllerProps<T extends Record<string, any>> {
-  field: keyof T | string;
+  field: keyof T;
   render: (field:{value: any, 
     error: string,
     onChange: (value: string) => void,
