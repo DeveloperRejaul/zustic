@@ -231,6 +231,7 @@ export  type FormState<T> = Record<string, any> & {
   getValues: (key?: keyof T | string) => T | T[keyof T];
   setValue: (key: keyof T | string, value: T[keyof T]) => void;
   setError: (field: keyof T | string, error: string) => void;
+  registerField: (field: keyof T | string, defaultField?: Field<T[keyof T]>) => void;
   getErrors: (key?: keyof T | string) => Partial<Record<string, string>> | string;
   clearFieldError: (field: keyof T | string) => void;
   clearAllErrors: () => void;

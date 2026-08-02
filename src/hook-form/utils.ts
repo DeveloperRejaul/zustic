@@ -78,6 +78,20 @@ export function getNumberRule(rule: NumberRule | undefined, type: "min" | "max")
 }
 
 /**
+ * Gets the template field definition for an indexed array path.
+ *
+ * @param fieldKey - Normalized field path like `user[2].name`.
+ * @param state - Current form state object.
+ * @returns The template field for the same array index group, or undefined.
+ */
+export const getFieldTemplate = (
+  fieldKey: string,
+  state: Record<string, any>
+): Field<any> | undefined => {
+  return state[fieldKey.replace(/\[\d+\]/g, "[0]")] as Field<any> | undefined;
+};
+
+/**
  * Extracts plain values from the form state.
  *
  * @template T - Type of form values
@@ -339,6 +353,13 @@ export const unflattenValues = <T>(values: Record<string, any>): T => {
   return result as T;
 };
 
+/**
+ * Compares two validation rule values or objects for equality.
+ *
+ * @param a - First rule value or rule object.
+ * @param b - Second rule value or rule object.
+ * @returns True when both inputs are deeply equal for rule comparison.
+ */
 const isRuleEqual = (a: any, b: any) => {
   if (a === b) return true;
   if (typeof a !== typeof b) return false;
