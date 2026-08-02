@@ -6,6 +6,7 @@ import { createForm, zodResolver, yupResolver } from "zustic/hook-form";
 type FormType = {
   email: string;
   name: string;
+  user:{name:string, email:string}[];
 };
 
 // ✅ define schema
@@ -19,10 +20,25 @@ const schemaYup = yup.object({
 
 
 const useForm = createForm<FormType, {xyz:string}>({
-  defaultValues: {
+  defaultValues:{
+    email: {
+      value: "",
+      required: { value: true, message: "Email is required" },
+    },
+    name: {
+      value: "",
+      required: { value: true, message: "Name is required" },
+    },
+   user: [1,2,3,4,5].map((index) => ({
+      name: {
+        value: "",
+        required: { value: true, message: `User name ${index} is required` },
+      },
       email: {
         value: "",
+        required: { value: true, message: `User email ${index} is required` },
       },
+    })),
   }
 });
 
@@ -38,6 +54,8 @@ export default function HookForm() {
     <form
       onSubmit={handleSubmit((data) => {
         setIsLoading(pre => !pre);
+        console.log(data);
+        
       })}
     >
       <Controller
@@ -67,6 +85,36 @@ export default function HookForm() {
           </div>
         )}
       />
+      {[1,2,3,4, 5].map((_, index) => (
+        <div key={index}>
+        <Controller
+          field={`user.${index}.name`}
+          render={({onChange, value, error}) => (
+            <div>
+              <input
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="Name"
+              />
+              {error && <p style={{ color: "red" }}>{error}</p>}
+            </div>
+          )}
+        />
+        <Controller
+          field={`user.${index}.email`}
+          render={({onChange, value, error}) => (
+            <div>
+              <input
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="Email"
+              />
+              {error && <p style={{ color: "red" }}>{error}</p>}
+            </div>
+          )}
+        />
+        </div>
+      ))}
 
       <button type="button" onClick={reset}>Reset</button>
       <button type="submit">Submit</button>
