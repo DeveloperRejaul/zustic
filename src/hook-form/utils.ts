@@ -200,7 +200,28 @@ const flattenDefaultValues = (values: any, basePath = "") => {
       isDirty: field.isDirty ?? false,
       ...field,
     };
+
+    const innerValue = field.value;
+    if (innerValue && typeof innerValue === "object") {
+      Object.assign(result, flattenDefaultValues(innerValue, path));
+    }
   };
+
+  if (Array.isArray(values)) {
+    values.forEach((item, index) => {
+      const path = basePath ? `${basePath}[${index}]` : `${index}`;
+
+      if (item && typeof item === "object" && "value" in item) {
+        assignField(path, item);
+      } else if (typeof item === "object") {
+        Object.assign(result, flattenDefaultValues(item, path));
+      } else {
+        assignField(path, { value: item });
+      }
+    });
+
+    return result;
+  }
 
   Object.entries(values || {}).forEach(([key, value]) => {
     const path = basePath ? `${basePath}.${key}` : key;

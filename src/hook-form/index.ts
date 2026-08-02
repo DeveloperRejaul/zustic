@@ -112,21 +112,24 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
         defaultValidateField: (field: keyof T | string): string => {
             const fieldKey = normalizeField(field);
             const state = get();
-            const fieldState = state[fieldKey] as Field<T[keyof T]>;
+            const fieldState = state[fieldKey] as Field<T[keyof T]> | undefined;
             let error: string = "";
-            const value = parseValue<any>(fieldState.value, fieldState.value);
+            const value = parseValue<any>(fieldState?.value ?? "", fieldState?.value ?? "");
 
-            const required = getRequired(fieldState.required, String(fieldKey));
-            const min = getNumberRule(fieldState.min, "min");
-            const max = getNumberRule(fieldState.max, "max");
+            const required = getRequired(fieldState?.required, String(fieldKey));
+            const min = getNumberRule(fieldState?.min, "min");
+            const max = getNumberRule(fieldState?.max, "max");
 
             // handle required
             if (required.value && !value) {
                 error = required.message;
             }            
             // pattern
-            else if (typeof value === "string" && fieldState.pattern && !fieldState.pattern.value.test(value)) {
-                error = fieldState.pattern.message;
+            else if (typeof value === "string") {
+                const pattern = fieldState?.pattern;
+                if (pattern && !pattern.value.test(value)) {
+                    error = pattern.message;
+                }
             }
 
             // min

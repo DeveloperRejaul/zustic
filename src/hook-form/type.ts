@@ -138,9 +138,13 @@ type Resolver<T extends Record<string, any>> = (
  *   resolver: zodResolver(schema)
  * }
  */
-type DefaultValues<T extends Record<string, any>> = {
-  [K in keyof T]: Field<T[K]> | T[K];
-};
+type DefaultValues<T> = T extends Array<infer U>
+  ? Array<DefaultValues<U>>
+  : T extends object
+  ? {
+      [K in keyof T]: DefaultValues<T[K]> | Field<T[K]>;
+    }
+  : Field<T> | T;
 
 export interface HookFormParams<
   T extends Record<string, any>,
