@@ -181,10 +181,11 @@ export interface HookFormParams<
  * }
  */
 export interface ControllerProps<T extends Record<string, any>> {
-  field: keyof T | string;
-  render: (field:{value: any, 
+  field: keyof T;
+  render: (field:{
+    value: T[keyof T], 
     error: string,
-    onChange: (value: string) => void,
+    onChange: (value: T[keyof T]) => void,
   }) => React.ReactNode;
 }
 
