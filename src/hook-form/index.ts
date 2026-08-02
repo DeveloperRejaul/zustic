@@ -497,9 +497,10 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
         }
         const state = useFormStore();
         const fieldKey = normalizeField(field);
+        const fieldState = state[fieldKey] ?? { value: "", error: "" };
 
-        const value = state[fieldKey].value;
-        const error = state[fieldKey].error;
+        const value = fieldState.value;
+        const error = fieldState.error;
 
         const {
             setFieldValue,
