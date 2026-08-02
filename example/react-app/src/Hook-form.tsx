@@ -45,12 +45,13 @@ const useForm = createForm<FormType, {xyz:string}>({
 });
 
 export default function HookForm() {
-  const { handleSubmit, Controller ,reset} = useForm();
+  const { handleSubmit, Controller ,reset, getValues} = useForm();
   
  const [isLoading, setIsLoading] = useState(false)
 
 
  console.log(isLoading);
+ 
  
   return (
     <form

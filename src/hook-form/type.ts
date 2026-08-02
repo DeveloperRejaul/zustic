@@ -225,20 +225,20 @@ export interface ControllerProps<T extends Record<string, any>> {
  * <form onSubmit={handleSubmit((data) => console.log(data))}>
  */
 export  type FormState<T> = Record<string, any> & {
-  setFieldValue: (field: keyof T | string, value: any) => void;
-  defaultValidateField: (field: keyof T | string) => string;
-  resolverValidate: (field: keyof T | string) => Promise<string | undefined>;
+  setFieldValue: (field: keyof T, value: any) => void;
+  defaultValidateField: (field: keyof T) => string;
+  resolverValidate: (field: keyof T) => Promise<string | undefined>;
   handleSubmit: (cb: (data: T) => void) => (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  getValues: (key?: keyof T | string) => T | T[keyof T];
-  setValue: (key: keyof T | string, value: T[keyof T]) => void;
-  setError: (field: keyof T | string, error: string) => void;
-  registerField: (field: keyof T | string, defaultField?: Field<T[keyof T]>) => void;
-  getErrors: (key?: keyof T | string) => Partial<Record<string, string>> | string;
-  clearFieldError: (field: keyof T | string) => void;
+  getValues: (key?: keyof T) => T | T[keyof T];
+  setValue: (key: keyof T, value: T[keyof T]) => void;
+  setError: (field: keyof T, error: string) => void;
+  registerField: (field: keyof T, defaultField?: Field<T[keyof T]>) => void;
+  getErrors: (key?: keyof T) => Partial<Record<string, string>> | string;
+  clearFieldError: (field: keyof T) => void;
   clearAllErrors: () => void;
-  isDirty: (field?: keyof T | string) => boolean;
-  isTouched: (field: keyof T | string) => boolean;
-  setTouched: (field: keyof T | string, touched: boolean) => void;
+  isDirty: (field?: keyof T) => boolean;
+  isTouched: (field: keyof T) => boolean;
+  setTouched: (field: keyof T, touched: boolean) => void;
   reset: () => void;
 };
 
