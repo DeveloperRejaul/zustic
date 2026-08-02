@@ -138,13 +138,35 @@ type Resolver<T extends Record<string, any>> = (
  *   resolver: zodResolver(schema)
  * }
  */
-type DefaultValues<T> = T extends Array<infer U>
+export type DefaultValues<T> = T extends Array<infer U>
   ? Array<DefaultValues<U>>
   : T extends object
   ? {
       [K in keyof T]: DefaultValues<T[K]> | Field<T[K]>;
     }
   : Field<T> | T;
+
+/**
+ * Infer the plain value shape from a DefaultValues-like structure.
+ * Converts `Field<T>` wrappers back into `T`, and preserves nested arrays/objects.
+ * Useful so callers can pass a `defaultValues` function and have the form value
+ * type inferred automatically by TypeScript.
+ */
+export type InferValuesFromDefault<D> = D extends Array<infer U>
+  ? Array<InferValuesFromDefault<U>>
+  : D extends { value: infer V }
+  ? V
+  : D extends object
+  ? { [K in keyof D]: InferValuesFromDefault<D[K]> }
+  : D;
+
+/**
+ * Normalize an inferred DefaultValues type to a record-shaped form value type.
+ * Falls back to a generic record when the inference produces a primitive.
+ */
+export type ResolveDefaultValues<D> = InferValuesFromDefault<D> extends Record<string, any>
+  ? InferValuesFromDefault<D>
+  : Record<string, any>;
 
 export interface HookFormParams<
   T extends Record<string, any>,

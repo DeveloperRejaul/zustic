@@ -3,7 +3,7 @@
 import { create } from "core";
 import React from "react";
 import { getDefaultValues, getFieldTemplate, getNumberRule, getRequired, getValues as gv, parseValue, yupResolver, zodResolver, areDefaultValuesEqual, normalizeFieldKey, unflattenValues } from "./utils";
-import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
+import type { ControllerProps, HookFormParams, Field ,FormState, InferValuesFromDefault, DefaultValues, ResolveDefaultValues } from "./type";
 
 
 /**
@@ -67,16 +67,20 @@ import type { ControllerProps, HookFormParams, Field ,FormState} from "./type";
  * });
  */
 
-function createForm<T extends Record<string, any>,  P extends Record<string, any> = T>(params: HookFormParams<T, P>) {
-    const { defaultValues, resolver} = params;
+function createForm<DV extends Record<string, any>, P extends Record<string, any> = {}>(params: {
+    defaultValues: DV | ((props: P) => DV);
+    resolver?: any;
+}) {
+    const { defaultValues, resolver } = params;
+
+    type T = ResolveDefaultValues<DV>;
 
     let useFormStore: ReturnType<typeof create<FormState<T>>> | null = null;
     let previousDefaultValues: Record<string, Field<any>> | null = null;
 
-    const normalizeField = (field: keyof T | string) =>
-        typeof field === "string" ? normalizeFieldKey(field) : String(field);
+    const normalizeField = (field: keyof T | string) => typeof field === "string" ? normalizeFieldKey(field) : String(field);
 
-    const useForm =  (fd: Record<string, Field<any>>) => create<FormState<T>>((set, get) => ({
+    const useForm = (fd: Record<string, Field<any>>) => create<FormState<T>>((set, get) => ({
         ...fd,
         /**
          * Updates a single field value and casts it to the correct type.
