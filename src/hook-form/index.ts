@@ -14,6 +14,12 @@ function createForm<DV extends DefaultValues<any>, P extends Record<string, any>
     resolver?: any;
 }): (props?: P) => any;
 
+// Overload: zero-argument function-style defaultValues, infer DV from return object
+function createForm<DV extends DefaultValues<any>>(params: {
+    defaultValues: () => DV;
+    resolver?: any;
+}): () => any;
+
 
 /**
  * Creates a type-safe form with validation, state management, and controller components.
