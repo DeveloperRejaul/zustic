@@ -280,6 +280,24 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
                 }
             } as any);
         },
+        registerField: (field: keyof T | string, defaultField?: Field<T[keyof T]>): void => {
+            const fieldKey = normalizeField(field);
+            const current = get()[fieldKey];
+            if (current) return;
+            set({
+                [fieldKey]: {
+                    value: defaultField?.value ?? "",
+                    error: defaultField?.error ?? "",
+                    touched: defaultField?.touched ?? false,
+                    isDirty: defaultField?.isDirty ?? false,
+                    required: defaultField?.required,
+                    pattern: defaultField?.pattern,
+                    min: defaultField?.min,
+                    max: defaultField?.max,
+                    ...defaultField,
+                }
+            } as any);
+        },
         /**
          * Gets all field errors or a specific field error.
          * If key is provided, returns just that field's error.
@@ -501,6 +519,12 @@ function createForm<T extends Record<string, any>,  P extends Record<string, any
         const state = useFormStore();
         const fieldKey = normalizeField(field);
         const fieldState = state[fieldKey] ?? { value: "", error: "" };
+
+        React.useEffect(() => {
+            if (!state[fieldKey]) {
+                state.registerField(field);
+            }
+        }, [field, fieldKey, state]);
 
         const value = fieldState.value;
         const error = fieldState.error;

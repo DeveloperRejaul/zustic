@@ -339,6 +339,13 @@ export const unflattenValues = <T>(values: Record<string, any>): T => {
   return result as T;
 };
 
+/**
+ * Compares two validation rule values or objects for equality.
+ *
+ * @param a - First rule value or rule object.
+ * @param b - Second rule value or rule object.
+ * @returns True when both inputs are deeply equal for rule comparison.
+ */
 const isRuleEqual = (a: any, b: any) => {
   if (a === b) return true;
   if (typeof a !== typeof b) return false;
