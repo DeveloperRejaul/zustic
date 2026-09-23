@@ -27,7 +27,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: 📦 Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: 🛠️ Build Project
         run: npm run build
