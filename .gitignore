@@ -80,8 +80,12 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 .output
+
+# dist/ is intentionally NOT ignored - this package is installed directly
+# from its GitHub URL by some consumers, and Yarn Classic doesn't reliably
+# run the `prepare` lifecycle script for git-sourced dependencies, so the
+# built output must be committed for those installs to work.
 
 # Gatsby files
 .cache/

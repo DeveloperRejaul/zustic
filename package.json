@@ -4,6 +4,7 @@
   "description": "A fast, minimal state management solution for React ecosystems. Works seamlessly with React, Next.js, and React Native, offering predictable state updates with a tiny footprint.",
   "scripts": {
     "build": "tsup",
+    "prepare": "npm run build",
     "test": "npm run build && npm link"
   },
   "exports": {
